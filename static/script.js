@@ -1,58 +1,97 @@
 function analyze() {
-    const url = document.getElementById('urlInput').value;
-    const loading = document.getElementById('loading');
-    const resultDiv = document.getElementById('result');
+    // 1. Get Elements
+    const urlInput = document.getElementById('urlInput');
+    const btn = document.getElementById('scanBtn');
+    const loader = document.getElementById('btnLoader');
+    const resultBox = document.getElementById('result');
 
-    if(!url) { alert("Please paste a URL first!"); return; }
+    // 2. Validation
+    const url = urlInput.value.trim();
+    if (!url) {
+        alert("Please paste a valid product URL first!");
+        return;
+    }
 
-    loading.classList.remove('hidden');
-    resultDiv.classList.add('hidden');
+    // 3. UI: Set to "Loading" State
+    btn.disabled = true;
+    btn.innerText = "Scanning...";
+    loader.classList.remove('hidden'); // Show spinner
+    resultBox.classList.add('hidden'); // Hide old results
 
-    fetch('/analyze', {
+    console.log("Sending request to server...");
+
+    // 4. Send Data to Python Backend
+    // FIX: Changed to relative path so it works on Cloud (Render) AND Localhost
+    fetch('/analyze', { 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ url: url })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Server responded with an error!");
+        }
+        return response.json();
+    })
     .then(data => {
-        loading.classList.add('hidden');
-        resultDiv.classList.remove('hidden');
-        
-        // Update Stats
+        // 5. UI: Reset to "Active" State
+        btn.disabled = false;
+        btn.innerText = "Analyze";
+        loader.classList.add('hidden'); // Hide spinner
+        resultBox.classList.remove('hidden'); // Show results
+
+        // 6. Update the Text Data
         document.getElementById('totalReviews').innerText = data.total;
         document.getElementById('realCount').innerText = data.real;
         document.getElementById('fakeCount').innerText = data.fake;
-
-        // Calculate Trust Score
-        let trustScore = 0;
-        if(data.total > 0) {
-            trustScore = Math.round((data.real / data.total) * 100);
-        }
-
-        const scoreEl = document.getElementById('trustScore');
-        const verdictEl = document.getElementById('verdictText');
-
-        scoreEl.innerText = trustScore + "%";
         
-        // Color Logic
-        if(data.verdict === "Suspicious") {
-            verdictEl.innerText = "Suspicious Product ⚠️";
-            verdictEl.style.color = "#ff4444";
-            scoreEl.style.color = "#ff4444";
-            document.querySelector('.score-circle').style.borderColor = "#ff4444";
-        } else if (data.verdict === "No Reviews Found") {
-            verdictEl.innerText = "No Data Found";
-            verdictEl.style.color = "#888";
+        // Trust Score & Verdict
+        const scoreText = document.getElementById('trustScore');
+        scoreText.innerText = data.score;
+        
+        const badge = document.getElementById('verdictBadge');
+        badge.innerText = data.verdict;
+
+        // 7. Update Colors & Progress Bar based on Score
+        const progressBar = document.getElementById('scoreBar');
+        
+        // Reset classes first
+        badge.className = 'verdict-badge'; 
+        
+        if (data.score >= 80) {
+            // SAFE (Green)
+            badge.classList.add('badge-safe');
+            scoreText.style.color = '#059669'; 
+            progressBar.style.backgroundColor = '#059669';
+        } else if (data.score >= 50) {
+            // CAUTION (Orange)
+            badge.classList.add('badge-warn');
+            scoreText.style.color = '#d97706'; 
+            progressBar.style.backgroundColor = '#d97706';
         } else {
-            verdictEl.innerText = "Safe to Buy ✅";
-            verdictEl.style.color = "#00ffcc";
-            scoreEl.style.color = "#00ffcc";
-            document.querySelector('.score-circle').style.borderColor = "#00ffcc";
+            // DANGER (Red)
+            badge.classList.add('badge-risk');
+            scoreText.style.color = '#dc2626'; 
+            progressBar.style.backgroundColor = '#dc2626';
         }
+
+        // Animate the bar width (0% -> Score%)
+        progressBar.style.width = "0%";
+        setTimeout(() => {
+            progressBar.style.width = data.score + "%";
+        }, 100);
+
     })
     .catch(error => {
-        console.error('Error:', error);
-        loading.classList.add('hidden');
-        alert("Something went wrong. Please try again.");
+        console.error("Connection Error:", error);
+        
+        // Reset UI on Error
+        btn.disabled = false;
+        btn.innerText = "Analyze";
+        loader.classList.add('hidden');
+        
+        alert("Could not connect to the server!\n\nIf you are seeing this on Render, wait 30 seconds and try again (the server might be waking up).");
     });
 }
