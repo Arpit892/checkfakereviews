@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us | CheckFakeReviews</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">Check<span>FakeReviews</span></a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/contact">Contact</a>
+        </div>
+    </nav>
+
+    <div class="container" style="text-align: left; max-width: 800px;">
+        <h1>About Us</h1>
+        <p style="color: #aaa; line-height: 1.6; margin-bottom: 20px;">
+            Welcome to <strong>CheckFakeReviews</strong>, India's first dedicated AI-powered tool designed to detect inauthentic product reviews on major e-commerce platforms.
+        </p>
+        
+        <h2 style="color: #fff; margin-top: 30px;">Our Mission</h2>
+        <p style="color: #aaa; line-height: 1.6;">
+            In an era where 40% of online reviews are estimated to be fake or incentivized, consumers are losing trust in star ratings. Our mission is to restore that trust by providing a transparent, algorithmic "Trust Score" for every product.
+        </p>
+
+        <h2 style="color: #fff; margin-top: 30px;">How It Works</h2>
+        <p style="color: #aaa; line-height: 1.6;">
+            We do not just count stars. Our Python-based engine scrapes the latest 100 reviews and analyzes them for:
+        </p>
+        <ul style="color: #aaa; margin-left: 20px; margin-top: 10px;">
+            <li><strong>Linguistic Repetition:</strong> Detecting "copy-paste" bot patterns.</li>
+            <li><strong>Data Density:</strong> Flagging low-effort, one-word reviews.</li>
+            <li><strong>Sentiment Flooding:</strong> Identifying excessive punctuation and unnatural praise.</li>
+        </ul>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 CheckFakeReviews. All rights reserved.</p>
+    </footer>
+</body>
+</html>
