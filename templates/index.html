@@ -295,78 +295,84 @@
     </footer>
 
     <script>
-        function analyze() {
-            const url = document.getElementById('urlInput').value;
-            const btn = document.getElementById('scanBtn');
-            const loader = document.getElementById('btnLoader');
-            const resultBox = document.getElementById('result');
+    function analyze() {
+        const urlInput = document.getElementById('urlInput');
+        const btn = document.getElementById('scanBtn');
+        const loader = document.getElementById('btnLoader');
+        const resultBox = document.getElementById('result');
 
-            if(!url) { 
-                alert("Please paste a product URL first!"); 
-                return; 
+        const url = urlInput.value.trim();
+        if (!url) {
+            alert("Please paste a valid product URL first!");
+            return;
+        }
+
+        // UI Loading State
+        btn.disabled = true;
+        btn.innerText = "Scanning...";
+        if(loader) loader.classList.remove('hidden');
+        if(resultBox) resultBox.classList.add('hidden');
+
+        // --- THE FIX: Using relative path for Render ---
+        fetch('/analyze', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Server Error");
+            return response.json();
+        })
+        .then(data => {
+            btn.disabled = false;
+            btn.innerText = "Analyze";
+            if(loader) loader.classList.add('hidden');
+            if(resultBox) resultBox.classList.remove('hidden');
+
+            document.getElementById('totalReviews').innerText = data.total;
+            document.getElementById('realCount').innerText = data.real;
+            document.getElementById('fakeCount').innerText = data.fake;
+            
+            const scoreText = document.getElementById('trustScore');
+            scoreText.innerText = data.score;
+            
+            const badge = document.getElementById('verdictBadge');
+            badge.innerText = data.verdict;
+
+            // --- ANIMATION & COLOR LOGIC ---
+            const progressBar = document.getElementById('scoreBar');
+            badge.className = 'verdict-badge'; 
+            
+            let color = '#dc2626'; // Default Red
+
+            if (data.score >= 80) {
+                badge.classList.add('badge-safe');
+                color = '#059669'; // Green
+            } else if (data.score >= 50) {
+                badge.classList.add('badge-warn');
+                color = '#d97706'; // Orange
+            } else {
+                badge.classList.add('badge-risk');
+                color = '#dc2626'; // Red
             }
 
-            // UI Loading State
-            btn.disabled = true;
-            btn.innerText = "Scanning...";
-            loader.classList.remove('hidden');
-            resultBox.classList.add('hidden');
+            scoreText.style.color = color;
+            progressBar.style.backgroundColor = color;
 
-            // --- THE FIX: Hardcoded Server Address to prevent file:// errors ---
-            fetch('http://127.0.0.1:5000/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // UI Reset
-                btn.disabled = false;
-                btn.innerText = "Analyze";
-                loader.classList.add('hidden');
-                resultBox.classList.remove('hidden');
-
-                // Update Text Data
-                document.getElementById('totalReviews').innerText = data.total;
-                document.getElementById('realCount').innerText = data.real;
-                document.getElementById('fakeCount').innerText = data.fake;
-                document.getElementById('trustScore').innerText = data.score;
-                
-                // Animate Progress Bar
-                setTimeout(() => {
-                    document.getElementById('scoreBar').style.width = data.score + "%";
-                }, 100);
-
-                // Update Badge & Colors based on Score
-                const badge = document.getElementById('verdictBadge');
-                const scoreText = document.getElementById('trustScore');
-                const bar = document.getElementById('scoreBar');
-
-                badge.className = 'verdict-badge'; // Reset classes
-                badge.innerText = data.verdict;
-
-                if (data.score >= 80) {
-                    badge.classList.add('badge-safe');
-                    scoreText.style.color = '#059669'; // Green
-                    bar.style.background = '#059669';
-                } else if (data.score >= 60) {
-                    badge.classList.add('badge-warn');
-                    scoreText.style.color = '#d97706'; // Orange
-                    bar.style.background = '#d97706';
-                } else {
-                    badge.classList.add('badge-risk');
-                    scoreText.style.color = '#dc2626'; // Red
-                    bar.style.background = '#dc2626';
-                }
-            })
-            .catch(error => {
-                console.error("Error details:", error);
-                btn.disabled = false;
-                btn.innerText = "Analyze";
-                loader.classList.add('hidden');
-                alert("Could not connect to the server. Please ensure 'python api.py' is running!");
-            });
-        }
+            // Animate width
+            progressBar.style.width = "0%";
+            setTimeout(() => {
+                progressBar.style.width = data.score + "%";
+            }, 100);
+        })
+        .catch(error => {
+            console.error(error);
+            btn.disabled = false;
+            btn.innerText = "Analyze";
+            if(loader) loader.classList.add('hidden');
+            alert("Connection Error! \n\nWe successfully reached the website, but the scan failed. \n\nWait 30 seconds and try again (The free server might be waking up).");
+        });
+    }
     </script>
 </body>
 </html>
