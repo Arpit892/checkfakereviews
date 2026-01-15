@@ -1,24 +1,81 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
     <title>Login | CheckFakeReviews</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { background: #f3f4f6; font-family: 'Poppins', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-        h2 { color: #0056d2; margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #0056d2; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        body { 
+            background: #f3f4f6; 
+            font-family: 'Poppins', sans-serif; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; /* Changed height to min-height for safety */
+            margin: 0; 
+            padding: 20px; /* Added padding so box doesn't touch screen edges on mobile */
+        }
+        .card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+        }
+        h2 { 
+            color: #0056d2; 
+            margin-bottom: 20px; 
+            font-size: 1.8rem; /* Scalable font size */
+        }
+        input { 
+            width: 100%; 
+            padding: 14px; /* Larger touch target for thumbs */
+            margin: 10px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 1rem; /* Prevents iPhone from zooming in automatically */
+        }
+        button { 
+            width: 100%; 
+            padding: 14px; /* Larger button for mobile tapping */
+            background: #0056d2; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            margin-top: 10px; 
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
         button:hover { background: #00449e; }
-        a { color: #666; font-size: 0.9rem; text-decoration: none; display: block; margin-top: 15px; }
+        a { 
+            color: #666; 
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            display: block; 
+            margin-top: 20px; 
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 480px) {
+            .card {
+                padding: 30px 20px; /* Slightly less padding on very small screens */
+            }
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>Welcome Back</h2>
-        <input type="email" placeholder="Email Address">
-        <input type="password" placeholder="Password">
-        <button>Login</button>
+        <form> <input type="email" placeholder="Email Address" required>
+            <input type="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
         <a href="/">← Back to Home</a>
     </div>
 </body>
