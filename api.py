@@ -84,6 +84,7 @@ def signup(): return render_template('signup.html')
 @app.route('/about')
 def about(): return render_template('about.html')
 
+# ✅ ADDED CONTACT ROUTE HERE
 @app.route('/contact')
 def contact(): return render_template('contact.html')
 
@@ -144,4 +145,5 @@ def analyze():
 if __name__ == '__main__':
     # Use the port Render gives us, or default to 5000 for testing
     port = int(os.environ.get("PORT", 5000)) 
+
     app.run(host='0.0.0.0', port=port)
