@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheckFakeReviews | AI Verification Engine</title>
+    
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -313,7 +316,7 @@
         if(loader) loader.classList.remove('hidden');
         if(resultBox) resultBox.classList.add('hidden');
 
-        // --- THE FIX: Using relative path for Render ---
+        // --- THE FIX: Using relative path ---
         fetch('/analyze', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -339,31 +342,18 @@
             const badge = document.getElementById('verdictBadge');
             badge.innerText = data.verdict;
 
-            // --- ANIMATION & COLOR LOGIC ---
-            const progressBar = document.getElementById('scoreBar');
+            // Color Logic
             badge.className = 'verdict-badge'; 
-            
-            let color = '#dc2626'; // Default Red
-
             if (data.score >= 80) {
                 badge.classList.add('badge-safe');
-                color = '#059669'; // Green
+                scoreText.style.color = '#059669'; 
             } else if (data.score >= 50) {
                 badge.classList.add('badge-warn');
-                color = '#d97706'; // Orange
+                scoreText.style.color = '#d97706'; 
             } else {
                 badge.classList.add('badge-risk');
-                color = '#dc2626'; // Red
+                scoreText.style.color = '#dc2626'; 
             }
-
-            scoreText.style.color = color;
-            progressBar.style.backgroundColor = color;
-
-            // Animate width
-            progressBar.style.width = "0%";
-            setTimeout(() => {
-                progressBar.style.width = data.score + "%";
-            }, 100);
         })
         .catch(error => {
             console.error(error);
@@ -373,6 +363,6 @@
             alert("Connection Error! \n\nWe successfully reached the website, but the scan failed. \n\nWait 30 seconds and try again (The free server might be waking up).");
         });
     }
-    </script>
+</script>
 </body>
 </html>
