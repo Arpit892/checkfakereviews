@@ -4,41 +4,205 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Us | CheckFakeReviews</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* --- GLOBAL STYLES (Matches Index.html) --- */
+        :root {
+            --primary: #0056d2;
+            --accent: #ffcc00;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- NAVBAR --- */
+        nav {
+            background: var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 5%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .nav-menu { display: flex; gap: 20px; }
+        .nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-weight: 500; transition: 0.3s; }
+        .nav-link:hover { color: white; transform: translateY(-2px); }
+
+        /* --- CONTENT CONTAINER --- */
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .about-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .about-header h1 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .about-header p {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* --- CARDS SECTION --- */
+        .content-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .content-card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .content-card p {
+            color: var(--text-light);
+            line-height: 1.7;
+            margin-bottom: 15px;
+        }
+
+        /* --- LIST STYLES --- */
+        ul.feature-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        ul.feature-list li {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            color: var(--text-dark);
+        }
+
+        ul.feature-list i {
+            color: var(--primary);
+            margin-top: 5px;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            background: #111827;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            margin-top: auto; /* Pushes footer to bottom */
+        }
+        
+        .copyright { color: #6b7280; font-size: 0.85rem; }
+
+        /* --- MOBILE --- */
+        @media (max-width: 768px) {
+            .about-header h1 { font-size: 2rem; }
+            .content-card { padding: 25px; }
+        }
+    </style>
 </head>
 <body>
+
     <nav>
-        <a href="/" class="logo">Check<span>FakeReviews</span></a>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/contact">Contact</a>
+        <a href="/" class="logo"><i class="fas fa-shield-alt"></i> CheckFakeReviews</a>
+        <div class="nav-menu">
+            <a href="/" class="nav-link">Home</a>
+            <a href="{{ url_for('contact') }}" class="nav-link">Contact</a>
         </div>
     </nav>
 
-    <div class="container" style="text-align: left; max-width: 800px;">
-        <h1>About Us</h1>
-        <p style="color: #aaa; line-height: 1.6; margin-bottom: 20px;">
-            Welcome to <strong>CheckFakeReviews</strong>, India's first dedicated AI-powered tool designed to detect inauthentic product reviews on major e-commerce platforms.
-        </p>
+    <div class="container">
         
-        <h2 style="color: #fff; margin-top: 30px;">Our Mission</h2>
-        <p style="color: #aaa; line-height: 1.6;">
-            In an era where 40% of online reviews are estimated to be fake or incentivized, consumers are losing trust in star ratings. Our mission is to restore that trust by providing a transparent, algorithmic "Trust Score" for every product.
-        </p>
+        <div class="about-header">
+            <h1>About Us</h1>
+            <p>We are a team of students and developers committed to bringing transparency back to e-commerce.</p>
+        </div>
 
-        <h2 style="color: #fff; margin-top: 30px;">How It Works</h2>
-        <p style="color: #aaa; line-height: 1.6;">
-            We do not just count stars. Our Python-based engine scrapes the latest 100 reviews and analyzes them for:
-        </p>
-        <ul style="color: #aaa; margin-left: 20px; margin-top: 10px;">
-            <li><strong>Linguistic Repetition:</strong> Detecting "copy-paste" bot patterns.</li>
-            <li><strong>Data Density:</strong> Flagging low-effort, one-word reviews.</li>
-            <li><strong>Sentiment Flooding:</strong> Identifying excessive punctuation and unnatural praise.</li>
-        </ul>
+        <div class="content-card">
+            <h2><i class="fas fa-bullseye" style="color: var(--accent);"></i> Our Mission</h2>
+            <p>
+                In an era where <strong>40% of online reviews</strong> are estimated to be fake or incentivized, consumers are losing trust in star ratings. 
+            </p>
+            <p>
+                Our mission is simple: to restore that trust. We provide a transparent, algorithmic <strong>"Trust Score"</strong> for every product, helping you distinguish between genuine buyer feedback and paid promotion.
+            </p>
+        </div>
+
+        <div class="content-card">
+            <h2><i class="fas fa-cogs" style="color: var(--accent);"></i> How It Works</h2>
+            <p>
+                We do not just count stars. Our Python-based AI engine scrapes the latest 100 reviews in real-time and analyzes them using advanced data patterns:
+            </p>
+            
+            <ul class="feature-list">
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Linguistic Repetition:</strong>
+                        <p style="margin-bottom: 0; font-size: 0.9rem;">Detecting "copy-paste" bot patterns where the same phrase is used across hundreds of accounts.</p>
+                    </div>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Data Density:</strong>
+                        <p style="margin-bottom: 0; font-size: 0.9rem;">Flagging low-effort, one-word reviews or accounts that review 50 products in a single hour.</p>
+                    </div>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Sentiment Flooding:</strong>
+                        <p style="margin-bottom: 0; font-size: 0.9rem;">Identifying excessive punctuation (!!!) and unnatural, overly enthusiastic praise typical of paid reviewers.</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
     </div>
 
     <footer>
-        <p>&copy; 2026 CheckFakeReviews. All rights reserved.</p>
+        <div class="copyright">
+            &copy; 2026 CheckFakeReviews. All rights reserved.
+        </div>
     </footer>
+
 </body>
 </html>
