@@ -1,28 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up | CheckFakeReviews</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { background: #0056d2; font-family: 'Poppins', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); width: 100%; max-width: 400px; text-align: center; }
-        h2 { color: #0056d2; margin-bottom: 10px; }
-        p { color: #666; margin-bottom: 20px; font-size: 0.9rem; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #ffcc00; color: black; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 15px; }
-        button:hover { background: #e6b800; }
-        a { color: #888; font-size: 0.9rem; text-decoration: none; display: block; margin-top: 15px; }
+        body { 
+            background: #0056d2; 
+            font-family: 'Poppins', sans-serif; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; /* changed to min-height for safety */
+            margin: 0; 
+            padding: 20px; /* Prevents card from sticking to edges on mobile */
+        }
+        .card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2); 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+        }
+        h2 { 
+            color: #0056d2; 
+            margin-bottom: 10px; 
+            font-size: 1.8rem;
+        }
+        p { 
+            color: #666; 
+            margin-bottom: 25px; 
+            font-size: 0.95rem; 
+        }
+        input { 
+            width: 100%; 
+            padding: 14px; /* Larger touch target */
+            margin: 8px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 1rem; /* Prevents auto-zoom on iPhone */
+        }
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background: #ffcc00; 
+            color: black; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            margin-top: 15px; 
+            font-size: 1rem;
+            transition: transform 0.2s, background 0.2s;
+        }
+        button:hover { 
+            background: #e6b800; 
+            transform: scale(1.02);
+        }
+        a { 
+            color: rgba(255, 255, 255, 0.8); /* Changed to light color for visibility on blue bg */
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            display: block; 
+            margin-top: 20px; 
+        }
+        a:hover { color: white; }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 480px) {
+            .card {
+                padding: 30px 20px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>Create Account</h2>
-        <p>make your account for best experience</p>
-        <input type="text" placeholder="Full Name">
-        <input type="email" placeholder="Email Address">
-        <input type="password" placeholder="Create Password">
-        <button>Sign Up Free</button>
-        <a href="/">← Back to Home</a>
+        <p>Make your account for the best experience</p>
+        
+        <form> <input type="text" placeholder="Full Name" required>
+            <input type="email" placeholder="Email Address" required>
+            <input type="password" placeholder="Create Password" required>
+            <button type="submit">Sign Up Free</button>
+        </form>
+
+        <a href="/" style="color: #888;">← Back to Home</a>
     </div>
 </body>
 </html>
