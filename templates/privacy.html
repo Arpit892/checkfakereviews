@@ -2,33 +2,175 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy | CheckFakeReviews</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* --- GLOBAL VARIABLES (Matches other pages) --- */
+        :root {
+            --primary: #0056d2;
+            --accent: #ffcc00;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- NAVBAR --- */
+        nav {
+            background: var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 5%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-weight: 500; transition: 0.3s; }
+        .nav-link:hover { color: white; }
+
+        /* --- CONTAINER --- */
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .last-updated {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        /* --- POLICY CARD --- */
+        .policy-card {
+            background: white;
+            padding: 50px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .policy-section {
+            margin-bottom: 30px;
+        }
+
+        .policy-section h3 {
+            color: var(--text-dark);
+            font-size: 1.25rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        .policy-section p {
+            color: var(--text-light);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            background: #111827;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            margin-top: auto;
+        }
+        .copyright { color: #6b7280; font-size: 0.85rem; }
+
+        /* --- MOBILE --- */
+        @media (max-width: 768px) {
+            .policy-card { padding: 25px; }
+            .page-header h1 { font-size: 2rem; }
+        }
+    </style>
 </head>
 <body>
+
     <nav>
-        <a href="/" class="logo">Check<span>FakeReviews</span></a>
-        <div class="nav-links"><a href="/">Back Home</a></div>
+        <a href="/" class="logo"><i class="fas fa-shield-alt"></i> CheckFakeReviews</a>
+        <a href="/" class="nav-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
     </nav>
 
-    <div class="container" style="text-align: left; max-width: 800px;">
-        <h1>Privacy Policy</h1>
-        <p style="color: #666; margin-bottom: 20px;">Last updated: January 2026</p>
+    <div class="container">
+        
+        <div class="page-header">
+            <h1>Privacy Policy</h1>
+            <p class="last-updated">Last updated: January 2026</p>
+        </div>
 
-        <h3 style="color: #fff;">1. Information We Collect</h3>
-        <p style="color: #aaa; margin-bottom: 15px;">
-            We do not collect any personal information (PII) from our users. You do not need to create an account to use our scanner. We only process the public Product URLs you enter into the search bar.
-        </p>
+        <div class="policy-card">
+            
+            <div class="policy-section">
+                <h3>1. Information We Collect</h3>
+                <p>
+                    For general visitors using our scanner tool, we do not collect personal identifiable information (PII). We only process the public Product URLs you enter into the search bar to perform the analysis. If you choose to create an account, we will store your name and email address securely for login purposes only.
+                </p>
+            </div>
 
-        <h3 style="color: #fff;">2. Cookies & Ads</h3>
-        <p style="color: #aaa; margin-bottom: 15px;">
-            We use third-party vendors, including Google, to serve ads based on your prior visits to our website. Google's use of advertising cookies enables it to serve ads to our users based on their visit to our site and other sites on the Internet.
-        </p>
+            <div class="policy-section">
+                <h3>2. Cookies & Advertising</h3>
+                <p>
+                    We may use third-party vendors, such as Google AdSense, to serve advertisements. These vendors use cookies to serve ads based on your prior visits to our website or other websites. You may opt out of personalized advertising by visiting Google's Ad Settings.
+                </p>
+            </div>
 
-        <h3 style="color: #fff;">3. Data Retention</h3>
-        <p style="color: #aaa; margin-bottom: 15px;">
-            We do not store the reviews we scrape. All analysis is performed in real-time and discarded immediately after the result is shown to you.
-        </p>
+            <div class="policy-section">
+                <h3>3. Data Retention</h3>
+                <p>
+                    We do not store the content of the reviews we scrape from e-commerce sites. All analysis is performed in real-time on our secure servers and the raw data is discarded immediately after the Trust Score is generated and shown to you.
+                </p>
+            </div>
+
+            <div class="policy-section">
+                <h3>4. Contact Us</h3>
+                <p>
+                    If you have questions about this privacy policy, please contact us via our <a href="{{ url_for('contact') }}" style="color: var(--primary); text-decoration: none; font-weight: 500;">Contact Page</a>.
+                </p>
+            </div>
+
+        </div>
     </div>
+
+    <footer>
+        <div class="copyright">
+            &copy; 2026 CheckFakeReviews. All rights reserved.
+        </div>
+    </footer>
+
 </body>
 </html>
