@@ -142,6 +142,15 @@ def analyze():
         print(f"SERVER ERROR: {e}")
         return jsonify({"error": str(e)}), 500
 
+# --- SEO CONFIGURATION (Added this!) ---
+@app.route('/sitemap.xml')
+def sitemap():
+    return app.send_static_file('sitemap.xml')
+
+@app.route('/robots.txt')
+def robots():
+    return app.send_static_file('robots.txt')
+
 if __name__ == '__main__':
     # Use the port Render gives us, or default to 5000 for testing
     port = int(os.environ.get("PORT", 5000)) 
