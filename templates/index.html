@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CheckFakeReviews | AI Verification Engine</title>
+    <title>CheckFakeReviews | Free AI Fake Review Detector</title>
+    <meta name="description" content="Instantly detect fake reviews on Amazon, Flipkart, Myntra, and more. Our free AI tool analyzes product reviews to tell you if a product is safe to buy.">
     
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 
@@ -238,6 +239,34 @@
         </div>
     </div>
 
+    <div class="container" style="margin: 80px auto 20px auto; padding: 0 5%; text-align: left; max-width: 900px;">
+        <h2>Is This Product Safe? Check Amazon & Flipkart Reviews Instantly</h2>
+        <p style="color: #6b7280; margin-top: 15px; line-height: 1.6;">
+            Shopping online is risky. Sellers on <strong>Amazon</strong>, <strong>Flipkart</strong>, and <strong>Myntra</strong> often buy fake 5-star reviews to trick you into buying low-quality products. 
+            <strong>CheckFakeReviews.online</strong> is a free AI-powered tool that analyzes review patterns to detect scams.
+        </p>
+
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #e5e7eb;">
+
+        <h3>How to Spot Fake Reviews?</h3>
+        <p style="color: #6b7280; margin-top: 10px;">Our algorithm looks for these 3 warning signs:</p>
+        <ul style="margin-left: 20px; margin-top: 10px; color: #4b5563; line-height: 1.8;">
+            <li><strong>Repetitive Phrasing:</strong> Bots often use the exact same sentences (e.g., "Great product, highly recommend") across hundreds of reviews.</li>
+            <li><strong>Review Bursting:</strong> A sudden spike of 5-star reviews in a single day is a major red flag.</li>
+            <li><strong>Generic Profiles:</strong> Reviews from users with no profile pictures or odd usernames often indicate paid bot farms.</li>
+        </ul>
+
+        <br>
+
+        <h3>Supported Platforms</h3>
+        <p style="color: #6b7280; margin-top: 10px; margin-bottom: 15px;">We currently support fake review detection for:</p>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <span style="background:#ff9900; padding: 5px 12px; border-radius: 5px; color: white; font-weight:500; font-size:0.9rem;">Amazon India</span>
+            <span style="background:#2874f0; padding: 5px 12px; border-radius: 5px; color: white; font-weight:500; font-size:0.9rem;">Flipkart</span>
+            <span style="background:#E1306C; padding: 5px 12px; border-radius: 5px; color: white; font-weight:500; font-size:0.9rem;">Myntra</span>
+            <span style="background:#333; padding: 5px 12px; border-radius: 5px; color: white; font-weight:500; font-size:0.9rem;">Ajio</span>
+        </div>
+    </div>
     <div id="why-use" class="section">
         <h2>Why trust CheckFakeReviews?</h2>
         <br>
@@ -296,6 +325,27 @@
             &copy; 2026 CheckFakeReviews. All rights reserved.
         </div>
     </footer>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Check Fake Reviews",
+      "applicationCategory": "UtilityApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Free AI tool to check for fake reviews on Amazon, Flipkart, and Myntra. Detect scams and buy safely.",
+      "url": "https://checkfakereviews.online",
+      "author": {
+        "@type": "Organization",
+        "name": "CheckFakeReviews"
+      }
+    }
+    </script>
 
     <script>
     function analyze() {
@@ -363,6 +413,6 @@
             alert("Connection Error! \n\nWe successfully reached the website, but the scan failed. \n\nWait 30 seconds and try again (The free server might be waking up).");
         });
     }
-</script>
+    </script>
 </body>
 </html>
