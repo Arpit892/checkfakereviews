@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import time
 import sqlite3
 import re
-import os  # <--- IMPORTANT: Added this so Render works!
+import os
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -84,7 +84,6 @@ def signup(): return render_template('signup.html')
 @app.route('/about')
 def about(): return render_template('about.html')
 
-# ✅ ADDED CONTACT ROUTE HERE
 @app.route('/contact')
 def contact(): return render_template('contact.html')
 
@@ -99,7 +98,23 @@ def terms(): return render_template('terms.html')
 def analyze():
     try:
         data = request.json
-        url = data.get('url', '').split('?')[0]
+        raw_input = data.get('url', '')
+
+        # --- 🚀 THE FIX STARTS HERE ---
+        # Regex to find 'http' or 'https' inside any text
+        url_match = re.search(r'(https?://\S+)', raw_input)
+        
+        if url_match:
+            # Extract link and clean punctuation
+            clean_url = url_match.group(1).rstrip('.,;:)')
+            # Remove tracking junk after '?'
+            if "?" in clean_url:
+                clean_url = clean_url.split('?')[0]
+        else:
+            return jsonify({"total": 0, "real": 0, "fake": 0, "score": 0, "verdict": "Invalid Link 🚫"}), 200
+
+        url = clean_url
+        # --- 🚀 THE FIX ENDS HERE ---
         
         # DATABASE CONNECTION
         conn = sqlite3.connect('reviews_v3.db')
@@ -142,7 +157,7 @@ def analyze():
         print(f"SERVER ERROR: {e}")
         return jsonify({"error": str(e)}), 500
 
-# --- SEO CONFIGURATION (Added this!) ---
+# --- SEO CONFIGURATION ---
 @app.route('/sitemap.xml')
 def sitemap():
     return app.send_static_file('sitemap.xml')
@@ -152,7 +167,5 @@ def robots():
     return app.send_static_file('robots.txt')
 
 if __name__ == '__main__':
-    # Use the port Render gives us, or default to 5000 for testing
     port = int(os.environ.get("PORT", 5000)) 
-
     app.run(host='0.0.0.0', port=port)
