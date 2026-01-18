@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Us | CheckFakeReviews</title>
     
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" type="image/png" href="static/favicon.png">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* --- GLOBAL STYLES (Matches Index.html) --- */
         :root {
             --primary: #0056d2;
             --accent: #ffcc00;
@@ -30,7 +29,6 @@
             min-height: 100vh;
         }
 
-        /* --- NAVBAR --- */
         nav {
             background: var(--primary);
             display: flex;
@@ -52,7 +50,6 @@
         .nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-weight: 500; transition: 0.3s; }
         .nav-link:hover { color: white; transform: translateY(-2px); }
 
-        /* --- CONTENT CONTAINER --- */
         .container {
             max-width: 900px;
             margin: 50px auto;
@@ -79,7 +76,6 @@
             margin: 0 auto;
         }
 
-        /* --- CARDS SECTION --- */
         .content-card {
             background: white;
             padding: 40px;
@@ -104,7 +100,6 @@
             margin-bottom: 15px;
         }
 
-        /* --- LIST STYLES --- */
         ul.feature-list {
             list-style: none;
             margin-top: 20px;
@@ -123,22 +118,31 @@
             margin-top: 5px;
         }
 
-        /* --- FOOTER --- */
+        /* --- ALERT BOX FOR DISCLOSURE --- */
+        .disclosure-box {
+            background: #fff8e1;
+            border-left: 5px solid var(--accent);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+            color: #856404;
+        }
+
         footer {
             background: #111827;
             color: white;
             padding: 30px;
             text-align: center;
-            margin-top: auto; /* Pushes footer to bottom */
+            margin-top: auto;
         }
         
         .copyright { color: #6b7280; font-size: 0.85rem; }
 
-        /* --- MOBILE --- */
         @media (max-width: 768px) {
             .about-header h1 { font-size: 2rem; }
             .content-card { padding: 25px; }
-            .nav-menu { display: none; } /* Hide menu links on small mobile screens */
+            .nav-menu { display: none; }
         }
     </style>
 </head>
@@ -148,19 +152,24 @@
         <a href="/" class="logo"><i class="fas fa-shield-alt"></i> CheckFakeReviews</a>
         <div class="nav-menu">
             <a href="/" class="nav-link">Home</a>
-            <a href="{{ url_for('contact') }}" class="nav-link">Contact</a>
+            <a href="/contact" class="nav-link">Contact</a>
         </div>
     </nav>
 
     <div class="container">
         
         <div class="about-header">
-            <h1>About Us</h1>
-            <p>We are a team of students and developers committed to bringing transparency back to e-commerce.</p>
+            <h1>Our Story & Mission</h1>
+            <p>Empowering Indian shoppers with AI to navigate the world of e-commerce safely.</p>
+        </div>
+
+        <div class="disclosure-box">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Affiliate Disclosure:</strong> To keep this tool free for everyone, we participate in various affiliate programs. When you click on links and make a purchase, we may receive a small commission at no extra cost to you. This helps us maintain our AI servers.
         </div>
 
         <div class="content-card">
-            <h2><i class="fas fa-bullseye" style="color: var(--accent);"></i> Our Mission</h2>
+            <h2><i class="fas fa-bullseye" style="color: var(--accent);"></i> The Problem We Solve</h2>
             <p>
                 In an era where <strong>40% of online reviews</strong> are estimated to be fake or incentivized, consumers are losing trust in star ratings. 
             </p>
@@ -170,34 +179,41 @@
         </div>
 
         <div class="content-card">
-            <h2><i class="fas fa-cogs" style="color: var(--accent);"></i> How It Works</h2>
+            <h2><i class="fas fa-microchip" style="color: var(--primary);"></i> Our Technology</h2>
             <p>
-                We do not just count stars. Our Python-based AI engine scrapes the latest 100 reviews in real-time and analyzes them using advanced data patterns:
+                Our proprietary AI engine doesn't just look at the average rating. It analyzes the linguistic structure and metadata of the latest 100 reviews in real-time.
             </p>
             
             <ul class="feature-list">
                 <li>
                     <i class="fas fa-check-circle"></i>
                     <div>
-                        <strong>Linguistic Repetition:</strong>
-                        <p style="margin-bottom: 0; font-size: 0.9rem;">Detecting "copy-paste" bot patterns where the same phrase is used across hundreds of accounts.</p>
+                        <strong>Pattern Detection:</strong>
+                        <p style="margin-bottom: 0; font-size: 0.9rem;">Identifying repetitive phrases and "template-style" reviews used by paid review farms.</p>
                     </div>
                 </li>
                 <li>
                     <i class="fas fa-check-circle"></i>
                     <div>
-                        <strong>Data Density:</strong>
-                        <p style="margin-bottom: 0; font-size: 0.9rem;">Flagging low-effort, one-word reviews or accounts that review 50 products in a single hour.</p>
+                        <strong>Account Verification:</strong>
+                        <p style="margin-bottom: 0; font-size: 0.9rem;">Filtering out low-authority or "one-day" accounts that flood products with unearned praise.</p>
                     </div>
                 </li>
                 <li>
                     <i class="fas fa-check-circle"></i>
                     <div>
-                        <strong>Sentiment Flooding:</strong>
-                        <p style="margin-bottom: 0; font-size: 0.9rem;">Identifying excessive punctuation (!!!) and unnatural, overly enthusiastic praise typical of paid reviewers.</p>
+                        <strong>Privacy First:</strong>
+                        <p style="margin-bottom: 0; font-size: 0.9rem;">We don't track your identity. Our system uses cookies only to facilitate safe redirects to official stores.</p>
                     </div>
                 </li>
             </ul>
+        </div>
+
+        <div class="content-card">
+            <h2><i class="fas fa-user-graduate" style="color: var(--primary);"></i> Who We Are</h2>
+            <p>
+                We are a dedicated team of student developers and data scientists passionate about consumer rights. By using <strong>CheckFakeReviews</strong>, you are supporting independent tech innovation in India.
+            </p>
         </div>
 
     </div>
