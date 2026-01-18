@@ -11,10 +11,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* --- GLOBAL VARIABLES --- */
         :root {
             --primary: #0056d2;
             --accent: #ffcc00;
+            --insta: #E1306C;
             --text-dark: #1f2937;
             --text-light: #6b7280;
             --bg-light: #f9fafb;
@@ -30,7 +30,6 @@
             min-height: 100vh;
         }
 
-        /* --- NAVBAR --- */
         nav {
             background: var(--primary);
             display: flex;
@@ -52,9 +51,8 @@
         .nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-weight: 500; transition: 0.3s; }
         .nav-link:hover { color: white; transform: translateY(-2px); }
 
-        /* --- CONTAINER --- */
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 50px auto;
             padding: 20px;
             width: 100%;
@@ -74,73 +72,93 @@
             font-size: 1.1rem;
         }
 
-        /* --- CONTACT CARD --- */
-        .contact-card {
-            background: white;
-            padding: 50px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            max-width: 600px;
-            margin: 0 auto;
-            border: 1px solid rgba(0,0,0,0.05);
+        /* --- CONTACT GRID --- */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
         }
 
+        .contact-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: 0.3s;
+        }
+
+        .contact-card:hover { transform: translateY(-5px); }
+
         .icon-wrapper {
-            width: 80px; height: 80px;
+            width: 70px; height: 70px;
             background: #eff6ff;
             color: var(--primary);
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 2rem;
+            font-size: 1.8rem;
             margin: 0 auto 20px auto;
         }
 
-        .contact-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
+        .contact-card h3 { font-size: 1.4rem; margin-bottom: 10px; }
+        .contact-card p { color: var(--text-light); margin-bottom: 25px; line-height: 1.6; font-size: 0.95rem; }
 
-        .contact-card p {
-            color: var(--text-light);
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-
-        /* --- EMAIL BUTTON --- */
-        .email-btn {
+        /* --- BUTTONS --- */
+        .btn {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            background: var(--primary);
-            color: white;
-            padding: 15px 35px;
+            padding: 12px 30px;
             border-radius: 50px;
             text-decoration: none;
             font-weight: 600;
-            font-size: 1.1rem;
             transition: 0.3s;
+        }
+
+        .email-btn {
+            background: var(--primary);
+            color: white;
             box-shadow: 0 4px 15px rgba(0, 86, 210, 0.2);
         }
 
-        .email-btn:hover {
-            background: #00449e;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 86, 210, 0.3);
+        .insta-btn {
+            background: var(--insta);
+            color: white;
+            box-shadow: 0 4px 15px rgba(225, 48, 108, 0.2);
         }
+
+        .btn:hover { opacity: 0.9; transform: scale(1.05); }
 
         /* --- FOOTER --- */
         footer {
             background: #111827;
             color: white;
-            padding: 30px;
+            padding: 40px 20px;
             text-align: center;
             margin-top: auto;
         }
+        
+        .footer-links {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #9ca3af;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .footer-links a:hover { color: white; }
         .copyright { color: #6b7280; font-size: 0.85rem; }
 
-        /* --- MOBILE --- */
         @media (max-width: 768px) {
-            .contact-card { padding: 30px 20px; }
+            .page-header h1 { font-size: 2rem; }
             .nav-menu { display: none; }
         }
     </style>
@@ -159,27 +177,42 @@
         
         <div class="page-header">
             <h1>Get in Touch</h1>
-            <p>Have questions, feedback, or found a bug? We'd love to hear from you.</p>
+            <p>We're dedicated to making e-commerce transparent. How can we help you today?</p>
         </div>
 
-        <div class="contact-card">
-            <div class="icon-wrapper">
-                <i class="fas fa-envelope-open-text"></i>
+        <div class="contact-grid">
+            <div class="contact-card">
+                <div class="icon-wrapper">
+                    <i class="fas fa-envelope-open-text"></i>
+                </div>
+                <h3>Email Support</h3>
+                <p>Found a bug or have a feature request? Drop us a line and we'll reply within 24 hours.</p>
+                <a href="mailto:checkfakereviews@gmail.com" class="btn email-btn">
+                    <i class="fas fa-paper-plane"></i> Send Email
+                </a>
             </div>
-            
-            <h3>Email Support</h3>
-            <p>
-                We are here to help! Send us an email and we will get back to you within 24-48 hours.
-            </p>
 
-            <a href="mailto:checkfakereviews@gmail.com" class="email-btn">
-                <i class="fas fa-paper-plane"></i> Send Email
-            </a>
+            <div class="contact-card">
+                <div class="icon-wrapper" style="background: #fdf2f8; color: var(--insta);">
+                    <i class="fab fa-instagram"></i>
+                </div>
+                <h3>Follow Us</h3>
+                <p>Join our community for daily shopping tips, AI updates, and latest scam alerts.</p>
+                <a href="https://www.instagram.com/checkfakereviews/" target="_blank" class="btn insta-btn">
+                    <i class="fab fa-instagram"></i> @checkfakereviews
+                </a>
+            </div>
         </div>
 
     </div>
 
     <footer>
+        <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="{{ url_for('about') }}">About Us</a>
+            <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+            <a href="/terms">Terms</a>
+        </div>
         <div class="copyright">
             &copy; 2026 CheckFakeReviews. All rights reserved.
         </div>
