@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* --- GLOBAL VARIABLES (Matches other pages) --- */
         :root {
             --primary: #0056d2;
             --accent: #ffcc00;
@@ -30,7 +29,6 @@
             min-height: 100vh;
         }
 
-        /* --- NAVBAR --- */
         nav {
             background: var(--primary);
             display: flex;
@@ -51,7 +49,6 @@
         .nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-weight: 500; transition: 0.3s; }
         .nav-link:hover { color: white; }
 
-        /* --- CONTAINER --- */
         .container {
             max-width: 900px;
             margin: 50px auto;
@@ -76,10 +73,9 @@
             margin-top: 10px;
         }
 
-        /* --- POLICY CARD --- */
         .policy-card {
             background: white;
-            padding: 50px;
+            padding: 40px;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
             border: 1px solid rgba(0,0,0,0.05);
@@ -92,11 +88,10 @@
         .policy-section h3 {
             color: var(--text-dark);
             font-size: 1.25rem;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             font-weight: 600;
-            border-bottom: 2px solid #f3f4f6;
-            padding-bottom: 10px;
-            display: inline-block;
+            border-left: 4px solid var(--primary);
+            padding-left: 15px;
         }
 
         .policy-section p {
@@ -105,7 +100,6 @@
             font-size: 0.95rem;
         }
 
-        /* --- FOOTER --- */
         footer {
             background: #111827;
             color: white;
@@ -115,7 +109,6 @@
         }
         .copyright { color: #6b7280; font-size: 0.85rem; }
 
-        /* --- MOBILE --- */
         @media (max-width: 768px) {
             .policy-card { padding: 25px; }
             .page-header h1 { font-size: 2rem; }
@@ -133,7 +126,7 @@
         
         <div class="page-header">
             <h1>Privacy Policy</h1>
-            <p class="last-updated">Last updated: January 2026</p>
+            <p class="last-updated">Last updated: January 18, 2026</p>
         </div>
 
         <div class="policy-card">
@@ -141,21 +134,38 @@
             <div class="policy-section">
                 <h3>1. Information We Collect</h3>
                 <p>
-                    We do not collect any personal information (PII) from our users. You do not need to create an account to use our scanner. We only process the public Product URLs you enter into the search bar.
+                    We value your privacy. CheckFakeReviews does not require user registration or the collection of personally identifiable information (PII). We only process the public e-commerce product URLs that you voluntarily paste into our scanner for analysis.
                 </p>
             </div>
 
             <div class="policy-section">
-                <h3>2. Cookies & Ads</h3>
+                <h3>2. Affiliate & Third-Party Cookies</h3>
                 <p>
-                    We use third-party vendors, including Google, to serve ads based on your prior visits to our website. Google's use of advertising cookies enables it to serve ads to our users based on their visit to our site and other sites on the Internet.
+                    CheckFakeReviews participates in various affiliate marketing programs, including <strong>Cuelinks</strong> and <strong>Amazon Associates</strong>. When you click on a product link or button (such as "Go to Product"), a "cookie" is placed in your browser to track the referral.
+                </p>
+                <p style="margin-top: 10px;">
+                    This cookie helps the e-commerce store identify that you came from our site, allowing us to earn a small commission at no extra cost to you. We also use third-party tools like Google Analytics to understand site traffic and improve our AI algorithm.
                 </p>
             </div>
 
             <div class="policy-section">
-                <h3>3. Data Retention</h3>
+                <h3>3. External Links</h3>
                 <p>
-                    We do not store the reviews we scrape. All analysis is performed in real-time and discarded immediately after the result is shown to you.
+                    Our website contains links to external e-commerce platforms (Amazon, Flipkart, Myntra, etc.). Once you leave our site, we are not responsible for the privacy practices or content of those external websites. We encourage you to read their respective privacy policies.
+                </p>
+            </div>
+
+            <div class="policy-section">
+                <h3>4. Data Handling & Security</h3>
+                <p>
+                    We do not store or sell the review data we scrape. The analysis is performed dynamically in real-time. We use standard industry security measures to protect the integrity of our website and ensure a safe scanning environment for our users.
+                </p>
+            </div>
+
+            <div class="policy-section">
+                <h3>5. Contact Us</h3>
+                <p>
+                    If you have any questions regarding this Privacy Policy, you may contact us through our official contact page.
                 </p>
             </div>
 
