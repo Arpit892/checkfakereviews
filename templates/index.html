@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -116,7 +116,30 @@
         .stat-item h4 { font-size: 2rem; font-weight: 700; color: #1f2937; margin-bottom: 5px; }
         .stat-item p { color: #6b7280; font-size: 0.9rem; }
 
-        /* --- FEATURES SECTION --- */
+        /* --- TRENDING SCANS SECTION --- */
+        .trending-scans { padding: 80px 5% 40px 5%; background: #fff; text-align: center; }
+        .scan-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+            gap: 20px; 
+            max-width: 1100px; 
+            margin: 40px auto; 
+        }
+        .scan-card {
+            padding: 25px;
+            border: 1px solid #f3f4f6;
+            background: #fff;
+            border-radius: 16px;
+            text-align: left;
+            transition: 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        .scan-card:hover { border-color: var(--primary); transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .scan-tag { font-size: 0.65rem; font-weight: 700; color: #059669; background: #d1fae5; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+        .scan-name { font-size: 1rem; font-weight: 600; margin: 15px 0 8px 0; display: block; color: var(--text-dark); }
+        .scan-score { font-size: 0.85rem; color: var(--text-light); }
+
+        /* --- FEATURES & WHY USE --- */
         .section { padding: 100px 5%; text-align: center; }
         .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto; }
         .card { background: white; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: 0.3s; text-align: left; border: 1px solid rgba(0,0,0,0.05); }
@@ -125,7 +148,7 @@
         .card h3 { font-size: 1.25rem; margin-bottom: 15px; font-weight: 600; }
         .card p { color: var(--text-light); line-height: 1.6; }
 
-        /* --- NEW CONNECT SECTION --- */
+        /* --- CONNECT SECTION --- */
         .connect-section { background: #ffffff; padding: 80px 5%; text-align: center; border-top: 1px solid #e5e7eb; }
         .connect-title { font-size: 2.2rem; font-weight: 700; color: var(--text-dark); margin-bottom: 10px; }
         .connect-subtitle { color: var(--text-light); margin-bottom: 40px; font-size: 1.1rem; }
@@ -207,7 +230,35 @@
         </div>
     </div>
 
-    <div class="container" style="margin: 80px auto 20px auto; padding: 0 5%; text-align: left; max-width: 900px;">
+    <div class="trending-scans">
+        <h2 style="font-size: 2.2rem; font-weight: 700; color: var(--text-dark);">Top Scanned Products</h2>
+        <p style="color: var(--text-light); font-size: 1.1rem; margin-top: 10px;">Live AI trust analysis for the Republic Day Sale 2026 deals.</p>
+        
+        <div class="scan-grid">
+            <div class="scan-card">
+                <span class="scan-tag">VERIFIED SAFE</span>
+                <span class="scan-name">iPhone 17 Pro</span>
+                <div class="scan-score">Trust Score: <b>94/100</b></div>
+            </div>
+            <div class="scan-card">
+                <span class="scan-tag">VERIFIED SAFE</span>
+                <span class="scan-name">Sony WH-1000XM4</span>
+                <div class="scan-score">Trust Score: <b>91/100</b></div>
+            </div>
+            <div class="scan-card" style="border-color: #fee2e2; background: #fffafb;">
+                <span class="scan-tag" style="background:#fee2e2; color:#dc2626;">HIGH RISK</span>
+                <span class="scan-name">Generic TWS Earbuds</span>
+                <div class="scan-score">Trust Score: <b>24/100</b></div>
+            </div>
+            <div class="scan-card">
+                <span class="scan-tag">VERIFIED SAFE</span>
+                <span class="scan-name">OnePlus 15 (5G)</span>
+                <div class="scan-score">Trust Score: <b>88/100</b></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" style="margin: 40px auto 20px auto; padding: 0 5%; text-align: left; max-width: 900px;">
         <h2>Is This Product Safe? Check Amazon & Flipkart Reviews Instantly</h2>
         <p style="color: #6b7280; margin-top: 15px; line-height: 1.6;">
             Shopping online is risky. Sellers on <strong>Amazon</strong>, <strong>Flipkart</strong>, and <strong>Myntra</strong> often buy fake 5-star reviews to trick you into buying low-quality products. 
