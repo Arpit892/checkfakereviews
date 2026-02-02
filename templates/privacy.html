@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy | CheckFakeReviews</title>
-    
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -20,14 +18,7 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        
-        body {
-            background-color: var(--bg-light);
-            color: var(--text-dark);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+        body { background-color: var(--bg-light); color: var(--text-dark); display: flex; flex-direction: column; min-height: 100vh; }
 
         nav {
             background: var(--primary);
@@ -38,81 +29,24 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
 
-        .logo {
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 700;
-            text-decoration: none;
-            display: flex; align-items: center; gap: 10px;
-        }
-
+        .logo { color: white; font-size: 1.5rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 10px; }
         .nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-weight: 500; transition: 0.3s; }
-        .nav-link:hover { color: white; }
 
-        .container {
-            max-width: 900px;
-            margin: 50px auto;
-            padding: 20px;
-            width: 100%;
-        }
+        .container { max-width: 900px; margin: 50px auto; padding: 20px; width: 100%; }
+        .page-header { text-align: center; margin-bottom: 40px; }
+        .page-header h1 { font-size: 2.5rem; color: var(--primary); font-weight: 700; }
+        .last-updated { color: var(--text-light); font-size: 0.9rem; margin-top: 10px; }
 
-        .page-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
+        .policy-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05); }
+        .policy-section { margin-bottom: 30px; }
+        .policy-section h3 { color: var(--text-dark); font-size: 1.25rem; margin-bottom: 12px; font-weight: 600; border-left: 4px solid var(--primary); padding-left: 15px; }
+        .policy-section p { color: var(--text-light); line-height: 1.7; font-size: 0.95rem; }
+        .policy-section ul { margin-left: 20px; color: var(--text-light); font-size: 0.95rem; line-height: 1.7; margin-top: 10px; }
 
-        .page-header h1 {
-            font-size: 2.5rem;
-            color: var(--primary);
-            font-weight: 700;
-        }
-
-        .last-updated {
-            color: var(--text-light);
-            font-size: 0.9rem;
-            margin-top: 10px;
-        }
-
-        .policy-card {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-
-        .policy-section {
-            margin-bottom: 30px;
-        }
-
-        .policy-section h3 {
-            color: var(--text-dark);
-            font-size: 1.25rem;
-            margin-bottom: 12px;
-            font-weight: 600;
-            border-left: 4px solid var(--primary);
-            padding-left: 15px;
-        }
-
-        .policy-section p {
-            color: var(--text-light);
-            line-height: 1.7;
-            font-size: 0.95rem;
-        }
-
-        footer {
-            background: #111827;
-            color: white;
-            padding: 30px;
-            text-align: center;
-            margin-top: auto;
-        }
+        footer { background: #111827; color: white; padding: 30px; text-align: center; margin-top: auto; }
         .copyright { color: #6b7280; font-size: 0.85rem; }
 
-        @media (max-width: 768px) {
-            .policy-card { padding: 25px; }
-            .page-header h1 { font-size: 2rem; }
-        }
+        @media (max-width: 768px) { .policy-card { padding: 25px; } .page-header h1 { font-size: 2rem; } }
     </style>
 </head>
 <body>
@@ -123,49 +57,68 @@
     </nav>
 
     <div class="container">
-        
         <div class="page-header">
             <h1>Privacy Policy</h1>
-            <p class="last-updated">Last updated: January 18, 2026</p>
+            <p class="last-updated">Last updated: February 2, 2026</p>
         </div>
 
         <div class="policy-card">
             
             <div class="policy-section">
-                <h3>1. Information We Collect</h3>
+                <h3>1. Introduction & Compliance</h3>
                 <p>
-                    We value your privacy. CheckFakeReviews does not require user registration or the collection of personally identifiable information (PII). We only process the public e-commerce product URLs that you voluntarily paste into our scanner for analysis.
+                    CheckFakeReviews ("we", "us", or "our") is committed to protecting your privacy. This policy explains our data practices in compliance with the **Digital Personal Data Protection (DPDP) Act, 2026** of India. We do not require user registration or collect personally identifiable information (PII) like names or phone numbers to use our scanning services.
                 </p>
             </div>
 
             <div class="policy-section">
-                <h3>2. Affiliate & Third-Party Cookies</h3>
+                <h3>2. Information We Process</h3>
                 <p>
-                    CheckFakeReviews participates in various affiliate marketing programs, including <strong>Cuelinks</strong> and <strong>Amazon Associates</strong>. When you click on a product link or button (such as "Go to Product"), a "cookie" is placed in your browser to track the referral.
+                    We only process the public e-commerce product URLs you voluntarily paste into our scanner. To improve service quality and detect fraud, we may automatically collect:
+                </p>
+                <ul>
+                    <li>Log data (IP addresses, browser type, and operating system).</li>
+                    <li>Usage patterns (time spent on site and scan frequency).</li>
+                    <li>Referral sources (how you arrived at our website).</li>
+                </ul>
+            </div>
+
+            <div class="policy-section">
+                <h3>3. Affiliate Networks & Cookies (Admitad)</h3>
+                <p>
+                    We participate in affiliate marketing programs, including **Admitad India**, **Cuelinks**, and **Amazon Associates**. 
                 </p>
                 <p style="margin-top: 10px;">
-                    This cookie helps the e-commerce store identify that you came from our site, allowing us to earn a small commission at no extra cost to you. We also use third-party tools like Google Analytics to understand site traffic and improve our AI algorithm.
+                    When you click on a "View Product" button, a third-party tracking cookie from **Admitad** or our other partners may be placed on your device. These cookies:
+                </p>
+                <ul>
+                    <li>Identify that you were referred by CheckFakeReviews.</li>
+                    <li>Allow us to earn a small commission on successful purchases at no extra cost to you.</li>
+                    <li>Are used by networks to prevent fraudulent clicks and ensure accurate order attribution.</li>
+                </ul>
+                <p style="margin-top: 10px;">
+                    You can manage or disable cookies through your browser settings at any time.
                 </p>
             </div>
 
             <div class="policy-section">
-                <h3>3. External Links</h3>
-                <p>
-                    Our website contains links to external e-commerce platforms (Amazon, Flipkart, Myntra, etc.). Once you leave our site, we are not responsible for the privacy practices or content of those external websites. We encourage you to read their respective privacy policies.
-                </p>
+                <h3>4. Your Rights (DPDP Act 2026)</h3>
+                <p>Under Indian law, you have the following rights regarding your digital data:</p>
+                <ul>
+                    <li><strong>Right to Information:</strong> To know what data is being processed.</li>
+                    <li><strong>Right to Withdrawal:</strong> To withdraw consent for cookies (via browser settings).</li>
+                    <li><strong>Right to Grievance Redressal:</strong> To report any privacy concerns to our Grievance Officer.</li>
+                </ul>
             </div>
 
             <div class="policy-section">
-                <h3>4. Data Handling & Security</h3>
+                <h3>5. Grievance Officer</h3>
                 <p>
-                    We do not store or sell the review data we scrape. The analysis is performed dynamically in real-time. We use standard industry security measures to protect the integrity of our website and ensure a safe scanning environment for our users.
+                    In accordance with the Information Technology Act and DPDP Rules, if you have any complaints or concerns, please contact our designated Grievance Officer:
                 </p>
-            </div>
-
-            <div class="policy-section">
-                <h3>5. Contact Us</h3>
-                <p>
-                    If you have any questions regarding this Privacy Policy, you may contact us through our official contact page.
+                <p style="margin-top: 10px; color: var(--text-dark); font-weight: 500;">
+                    Email: checkfakereviews@gmail.com<br>
+                    Subject: Privacy Grievance
                 </p>
             </div>
 
