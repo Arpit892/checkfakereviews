@@ -9,7 +9,6 @@
         :root { 
             --primary: #00d2ff; 
             --secondary: #3a7bd5; 
-            /* New "Trusted" Color Palette */
             --bg-dark: #05070a; 
             --card-bg: rgba(255, 255, 255, 0.03);
             --border-color: rgba(255, 255, 255, 0.08);
@@ -25,7 +24,6 @@
 
         .wrapper { display: flex; min-height: 100vh; padding: 30px; gap: 30px; }
         
-        /* Glass Sidebar */
         .sidebar { 
             width: 280px; 
             background: var(--card-bg); 
@@ -61,10 +59,8 @@
             transform: translateX(5px);
         }
 
-        /* Product Grid */
         .grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
         
-        /* Neon Glass Card */
         .card { 
             background: var(--card-bg); 
             backdrop-filter: blur(10px); 
@@ -99,21 +95,42 @@
             font-weight: 600;
         }
 
+        .action-btns { display: flex; gap: 10px; margin-top: 15px; }
+
         .btn-buy { 
-            display: block; 
+            flex: 2;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: #fff; 
             padding: 14px; 
             text-decoration: none; 
             border-radius: 14px;
-            margin-top: 15px; 
             font-weight: bold; 
             font-size: 0.9rem;
             box-shadow: 0 4px 15px rgba(58, 123, 213, 0.3);
             transition: 0.3s;
+            text-align: center;
         }
 
+        .btn-vault {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            color: white;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: 0.3s;
+        }
+
+        .btn-vault:hover { background: rgba(0, 210, 255, 0.1); border-color: var(--primary); }
+
         .btn-buy:hover { opacity: 0.9; transform: scale(1.02); }
+
+        .user-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
 
         @media (max-width: 900px) { 
             .wrapper { flex-direction: column; padding: 15px; } 
@@ -144,6 +161,16 @@
                 <a href="/store?price=1000to2000">✨ ₹1,000 - ₹2,000</a>
                 <a href="/store?price=above2000">💎 ₹2,000+ Premium</a>
             </div>
+
+            <div class="user-section">
+                {% if current_user.is_authenticated %}
+                    <h4 style="font-size: 0.8rem; opacity: 0.5;">Welcome, {{ current_user.username }}</h4>
+                    <a href="/cart" style="color: var(--primary); text-decoration: none; display: block; margin: 10px 0;">🔒 My Loot Vault</a>
+                    <a href="/logout" style="color: #ff4d4d; text-decoration: none; font-size: 0.9rem;">Logout</a>
+                {% else %}
+                    <a href="/login" class="btn-buy" style="display: block;">Login to Save Deals</a>
+                {% endif %}
+            </div>
         </aside>
 
         <main class="grid">
@@ -153,7 +180,13 @@
                 <img src="{{ p.img }}" alt="{{ p.name }}">
                 <h3>{{ p.name }}</h3>
                 <p class="price">₹{{ p.price }}</p>
-                <a href="{{ p.link }}" target="_blank" class="btn-buy">Visit Store & Buy</a>
+                
+                <div class="action-btns">
+                    <a href="{{ p.link }}" target="_blank" class="btn-buy">Buy Now</a>
+                    {% if current_user.is_authenticated %}
+                        <button onclick="addToVault('{{ p.name }}', {{ p.price }}, '{{ p.img }}')" class="btn-vault" title="Save to Vault">🛒</button>
+                    {% endif %}
+                </div>
             </div>
             {% endfor %}
             
@@ -165,5 +198,23 @@
             {% endif %}
         </main>
     </div>
+
+    <script>
+        function addToVault(name, price, img) {
+            fetch('/add-to-cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, price: price, img: img })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Something went wrong. Please try again.');
+            });
+        }
+    </script>
 </body>
 </html>
