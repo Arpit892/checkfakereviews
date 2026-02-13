@@ -30,17 +30,23 @@ def init_db():
 
 init_db()
 
-# --- CONFIG ---
-SITE_CONFIG = {
-    "amazon": {"tag": "span", "class": "review-text-content"},
-    "flipkart": {"tag": "div", "class": "t-ZTKy"},
-    "myntra": {"tag": "div", "class": "user-review-main"},
-    "ajio": {"tag": "div", "class": "review-content"},
-    "nykaa": {"tag": "div", "class": "message"},
-    "meesho": {"tag": "p", "class": "Comment__CommentText"}
-}
+# --- 🛍️ MANUAL DEALS FOR STORE (Add your EarnKaro links here) ---
+MANUAL_DEALS = [
+    {
+        "name": "Meesho Designer Saree", "price": 499, "app": "Meesho", 
+        "link": "https://ekaro.in/your_link_1", "score": 98, "img": "https://via.placeholder.com/300x300"
+    },
+    {
+        "id": 2, "name": "Noise Smartwatch", "price": 1299, "app": "Flipkart", 
+        "score": 92, "img": "https://via.placeholder.com/300x300", "link": "https://ekaro.in/your_link_2"
+    },
+    {
+        "id": 3, "name": "RGB Gaming Mouse", "price": 449, "app": "Amazon", 
+        "score": 85, "img": "https://via.placeholder.com/300x300", "link": "https://amzn.to/your_link_3"
+    }
+]
 
-# --- BROWSER ---
+# --- SCRAPER BROWSER CONFIG ---
 def get_driver():
     options = Options()
     options.add_argument("--headless")
@@ -60,7 +66,6 @@ def smart_scrape(url):
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-        
         paragraphs = soup.find_all(['p', 'div', 'span'])
         for p in paragraphs:
             text = p.get_text(strip=True)
@@ -70,44 +75,33 @@ def smart_scrape(url):
     except: return []
     finally: driver.quit()
 
-# --- 🛍️ NEW: MANUAL DEALS FOR STORE ---
-# Paste your EarnKaro links here
-MANUAL_DEALS = [
-    {"name": "Meesho Designer Saree", "price": 499, "app": "Meesho", "link": "https://ekaro.in/your_link_1", "score": 98, "img": "saree.jpg"},
-    {"name": "Flipkart Wireless Buds", "price": 899, "app": "Flipkart", "link": "https://ekaro.in/your_link_2", "score": 92, "img": "buds.jpg"},
-    {"name": "Amazon Gaming Mouse", "price": 1200, "app": "Amazon", "link": "https://amzn.to/your_link_3", "score": 85, "img": "mouse.jpg"},
-]
-
 # --- ROUTES ---
 @app.route('/')
 def home(): return render_template('index.html')
 
 @app.route('/store')
 def store():
-    # Logic for filtering by App and Price
-    app_filter = request.args.get('app')
-    max_price = request.args.get('max_price', type=int)
+    app_filter = request.args.get('app', 'all').lower()
+    price_filter = request.args.get('price', 'all')
 
     filtered_products = MANUAL_DEALS
 
-    if app_filter:
-        filtered_products = [p for p in filtered_products if p['app'].lower() == app_filter.lower()]
+    # Filter by Store/App
+    if app_filter != 'all':
+        filtered_products = [p for p in filtered_products if p['app'].lower() == app_filter]
     
-    if max_price:
-        filtered_products = [p for p in filtered_products if p['price'] <= max_price]
+    # Filter by Price Range
+    if price_filter == 'under500':
+        filtered_products = [p for p in filtered_products if p['price'] < 500]
+    elif price_filter == '500to1000':
+        filtered_products = [p for p in filtered_products if 500 <= p['price'] <= 1000]
+    elif price_filter == 'above1000':
+        filtered_products = [p for p in filtered_products if p['price'] > 1000]
 
     return render_template('store.html', products=filtered_products)
 
-# (All other standard routes: /login, /signup, /about, etc. stay here)
-@app.route('/login')
-def login(): return render_template('login.html')
-
-@app.route('/signup')
-def signup(): return render_template('signup.html')
-
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    # [YOUR EXISTING ANALYZE LOGIC REMAINS UNCHANGED HERE]
     try:
         data = request.json
         raw_input = data.get('url', '')
@@ -155,7 +149,12 @@ def analyze():
         print(f"SERVER ERROR: {e}")
         return jsonify({"error": str(e)}), 500
 
-# SEO and Port Logic remains the same...
+# Other routes
+@app.route('/login')
+def login(): return render_template('login.html')
+@app.route('/signup')
+def signup(): return render_template('signup.html')
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000)) 
     app.run(host='0.0.0.0', port=port)
