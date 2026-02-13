@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Loot Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;800&display=swap" rel="stylesheet">
+    <style>
+        body { background: #05070a; color: white; font-family: 'Plus Jakarta Sans', sans-serif; padding: 50px; }
+        .vault-item { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 20px; display: flex; align-items: center; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        .vault-item img { width: 80px; height: 80px; border-radius: 12px; margin-right: 20px; }
+        .total-box { margin-top: 30px; padding: 20px; border-top: 2px solid #00d2ff; display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+    <h1>Your Loot Vault 🔒</h1>
+    {% for item in items %}
+    <div class="vault-item">
+        <img src="{{ item.img }}">
+        <div>
+            <h3>{{ item.product_name }}</h3>
+            <p style="color:#00d2ff; font-weight:bold;">₹{{ item.price }}</p>
+        </div>
+    </div>
+    {% endfor %}
+    <div class="total-box">
+        <h2>Total Savings: ₹{{ total }}</h2>
+        <a href="/store" style="color:#aaa; text-decoration:none;">← Continue Shopping</a>
+    </div>
+</body>
+</html>
