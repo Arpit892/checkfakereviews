@@ -1,6 +1,9 @@
 flask
-flask_cors
+flask-cors
+flask-sqlalchemy
+flask-login
+flask-mail
 selenium
-webdriver_manager
+webdriver-manager
 beautifulsoup4
 gunicorn
