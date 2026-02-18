@@ -18,16 +18,19 @@ from datetime import datetime
 
 # --- 1. APP & CORE CONFIG ---
 app = Flask(__name__, template_folder='templates', static_folder='static')
-app.config['SECRET_KEY'] = 'checkfake-pro-ai-v3'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///checkfake_master.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'checkfake-pro-ai-v3')
+
+# FIX: Dynamic Database Path for Render
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'checkfake_master.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Email Config (SMTP)
+# Email Config (SMTP) - Using Environment Variables for safety
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your-email@gmail.com' 
-app.config['MAIL_PASSWORD'] = 'your-app-password' 
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USER', 'your-email@gmail.com')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASS', 'your-app-password')
 
 CORS(app, resources={r"/*": {"origins": "*"}})
 db = SQLAlchemy(app)
@@ -56,13 +59,14 @@ class CartItem(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- 3. SCRAPER ENGINE ---
+# --- 3. SCRAPER ENGINE (Optimized for Render Free Tier) ---
 def get_driver():
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("user-agent=Mozilla/5.0")
+    options.add_argument("--disable-gpu")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 def smart_scrape(url):
@@ -77,13 +81,15 @@ def smart_scrape(url):
             text = p.get_text(strip=True)
             if 30 < len(text) < 500: reviews.append(text)
         return list(set(reviews))[:50]
-    except: return []
-    finally: driver.quit()
+    except Exception as e:
+        print(f"Scrape Error: {e}")
+        return []
+    finally:
+        driver.quit()
 
 # --- 4. AUTH & NAVIGATION ---
 @app.route('/')
 def index():
-    # A professional landing page intro
     return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -106,7 +112,6 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, pwd):
             login_user(user)
-            # Smart Redirect: Goes back to the page the user was trying to access
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('store'))
         flash('Check your email and password.')
@@ -132,7 +137,6 @@ def store():
     filtered = MANUAL_DEALS
     if app_f != 'all': filtered = [p for p in filtered if p['app'].lower() == app_f]
     
-    # Precise Budget Filtering
     if price_f == 'under500': filtered = [p for p in filtered if p['price'] < 500]
     elif price_f == '500to1000': filtered = [p for p in filtered if 500 <= p['price'] <= 1000]
     elif price_f == '1000to2000': filtered = [p for p in filtered if 1000 < p['price'] <= 2000]
@@ -182,7 +186,14 @@ def analyze():
     verdict = "Trusted ✅" if score >= 75 else "Risk 🚫"
     return jsonify({"total": len(reviews), "score": score, "verdict": verdict})
 
+# --- 8. STARTUP ---
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+        try:
+            db.create_all()
+        except Exception as e:
+            print(f"Database Init Error: {e}")
+            
+    # Render manages the PORT; fallback to 5000 for local testing
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
