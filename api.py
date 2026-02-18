@@ -186,6 +186,23 @@ def analyze():
     verdict = "Trusted ✅" if score >= 75 else "Risk 🚫"
     return jsonify({"total": len(reviews), "score": score, "verdict": verdict})
 
+# --- MISSING NAV ROUTES ---
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
 # --- 8. STARTUP ---
 if __name__ == '__main__':
     with app.app_context():
@@ -197,3 +214,4 @@ if __name__ == '__main__':
     # Render manages the PORT; fallback to 5000 for local testing
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
