@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Intelligence | CheckFake Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { 
             --primary: #00d2ff; 
@@ -35,6 +36,7 @@
             background: linear-gradient(to right, #fff, var(--primary)); 
             -webkit-background-clip: text; 
             -webkit-text-fill-color: transparent; 
+            margin: 0;
         }
 
         .btn-back {
@@ -67,20 +69,53 @@
             overflow: hidden;
         }
 
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100px;
-            height: 100px;
-            background: var(--primary);
-            filter: blur(80px);
-            opacity: 0.1;
-        }
-
         .stat-card p { opacity: 0.5; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
         .stat-card h2 { font-size: 2.8rem; margin: 10px 0; color: white; font-weight: 800; }
+
+        /* Auto-Adder Section */
+        .control-engine {
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.05) 0%, rgba(58, 123, 213, 0.05) 100%);
+            border: 1px solid var(--primary);
+            padding: 40px;
+            border-radius: 30px;
+            margin-bottom: 50px;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-engine h2 { margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 15px; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 200px 200px;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        input {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            padding: 15px 20px;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
+
+        .btn-add {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-add:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0, 210, 255, 0.3); }
 
         /* Data Section */
         .admin-wrapper { 
@@ -94,14 +129,13 @@
             padding: 30px; 
             border-radius: 28px; 
             border: 1px solid var(--border); 
-            backdrop-filter: blur(10px);
         }
 
         .data-panel h3 { margin-top: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th { text-align: left; color: var(--primary); font-size: 0.75rem; text-transform: uppercase; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
-        td { padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.95rem; color: #ccc; }
+        td { padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.9rem; color: #ccc; }
         
         .badge { 
             background: rgba(0, 210, 255, 0.1); 
@@ -110,10 +144,11 @@
             border-radius: 100px; 
             font-size: 0.75rem; 
             font-weight: 600; 
-            border: 1px solid rgba(0, 210, 255, 0.2);
         }
 
-        @media (max-width: 1000px) { .admin-wrapper { grid-template-columns: 1fr; } }
+        @media (max-width: 1000px) { 
+            .admin-wrapper, .form-grid { grid-template-columns: 1fr; } 
+        }
     </style>
 </head>
 <body>
@@ -122,40 +157,49 @@
         <a href="/store" class="btn-back">← Exit Dashboard</a>
     </header>
     
+    <div class="control-engine">
+        <h2><i class="fas fa-bolt"></i> Auto-Stocking Engine</h2>
+        <p style="opacity: 0.6; margin-bottom: 20px;">Paste your EarnKaro Profit Link. Our AI will resolve the redirect, scrape the product image, and list it in your store automatically.</p>
+        
+        <form action="/admin-add" method="POST" class="form-grid">
+            <input type="text" name="url" placeholder="Paste EarnKaro Profit Link here..." required>
+            <input type="number" name="price" placeholder="Price (₹)" required>
+            <button type="submit" class="btn-add">Automate & Post</button>
+        </form>
+    </div>
+
     <div class="stats-grid">
         <div class="stat-card">
             <p>Total Registered Users</p>
             <h2>{{ stats.users }}</h2>
         </div>
         <div class="stat-card">
-            <p>Deals in Vaults</p>
+            <p>Items in Store</p>
             <h2>{{ stats.items }}</h2>
         </div>
         <div class="stat-card">
-            <p>Average Trust Score</p>
-            <h2>84<span style="font-size: 1.5rem; opacity: 0.5;">%</span></h2>
+            <p>Active Node Scrapers</p>
+            <h2>3<span style="font-size: 1rem; opacity: 0.5; color: #00ff88;"> ONLINE</span></h2>
         </div>
     </div>
 
     <div class="admin-wrapper">
         <div class="data-panel">
-            <h3>🔥 Trending in Vaults</h3>
+            <h3>🔥 Recent Listings</h3>
             <table>
                 <thead>
                     <tr>
                         <th>Product Name</th>
-                        <th style="text-align: right;">Total Saves</th>
+                        <th style="text-align: right;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for name, count in stats.popular %}
                     <tr>
-                        <td>{{ name }}</td>
-                        <td style="text-align: right;"><span class="badge">{{ count }} Users</span></td>
+                        <td>Latest Items Scraped</td>
+                        <td style="text-align: right;"><span class="badge">ACTIVE</span></td>
                     </tr>
-                    {% endfor %}
-                    {% if not stats.popular %}
-                    <tr><td colspan="2" style="text-align: center; opacity: 0.3; padding: 40px;">No data yet.</td></tr>
+                    {% if not stats.items %}
+                    <tr><td colspan="2" style="text-align: center; opacity: 0.3; padding: 40px;">No products in store yet.</td></tr>
                     {% endif %}
                 </tbody>
             </table>
@@ -167,14 +211,14 @@
                 <thead>
                     <tr>
                         <th>User</th>
-                        <th>Email Address</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for user in stats.recent %}
                     <tr>
                         <td style="color: white; font-weight: 600;">{{ user.username }}</td>
-                        <td>{{ user.email }}</td>
+                        <td><span style="color: #00ff88;">●</span> Active</td>
                     </tr>
                     {% endfor %}
                 </tbody>
