@@ -39,6 +39,35 @@
         }
 
         .sidebar h2 { color: var(--primary); font-size: 1.5rem; margin-bottom: 5px; }
+
+        /* --- New Search UI --- */
+        .search-box {
+            margin-top: 20px;
+            display: flex;
+            gap: 5px;
+            background: rgba(255,255,255,0.05);
+            padding: 5px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .search-box input {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 10px;
+            width: 100%;
+            outline: none;
+            font-size: 0.85rem;
+        }
+        .search-box button {
+            background: var(--primary);
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #000;
+        }
+
         .filter-group { margin-top: 25px; }
         .filter-group h4 { font-size: 0.75rem; text-transform: uppercase; opacity: 0.5; letter-spacing: 1px; margin-bottom: 10px; }
         .filter-group a { 
@@ -60,7 +89,6 @@
 
         .card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
 
-        /* --- Image Fixes --- */
         .img-container { width: 100%; aspect-ratio: 1/1; border-radius: 18px; overflow: hidden; background: #fff; margin-bottom: 15px; }
         .card img { width: 100%; height: 100%; object-fit: contain; }
 
@@ -83,12 +111,20 @@
             <h2>Loot Store</h2>
             <p style="font-size: 0.8rem; opacity: 0.6;">Verified by CheckFake AI</p>
             
+            <form action="/store" method="GET" class="search-box">
+                <input type="text" name="q" placeholder="Search (Jeans, Shirt...)" value="{{ search_query if search_query else '' }}">
+                <button type="submit"><i class="fas fa-search"></i></button>
+            </form>
+
             <div class="filter-group">
                 <h4>Platforms</h4>
                 <a href="/store?app=all">🌐 All Platforms</a>
                 <a href="/store?app=flipkart">🟦 Flipkart</a>
                 <a href="/store?app=amazon">🟧 Amazon</a>
                 <a href="/store?app=meesho">🛍️ Meesho</a>
+                <a href="/store?app=myntra">💖 Myntra</a>
+                <a href="/store?app=ajio">🕶️ Ajio</a>
+                <a href="/store?app=others">📦 Others</a>
             </div>
 
             <div class="user-section" style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 20px;">
@@ -124,8 +160,9 @@
 
             {% if not products %}
             <div style="grid-column: 1/-1; text-align: center; padding: 100px; opacity: 0.5;">
-                <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 20px;"></i>
-                <p>No verified deals found yet.</p>
+                <i class="fas fa-search-minus" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                <p>No results found for your search.</p>
+                <a href="/store" style="color: var(--primary); text-decoration: none; font-weight: bold;">Show all deals</a>
             </div>
             {% endif %}
         </main>
@@ -145,3 +182,4 @@
     </script>
 </body>
 </html>
+
