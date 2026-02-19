@@ -99,17 +99,37 @@ def index():
 
 @app.route('/store')
 def store():
+    # Get parameters from the URL
+    app_filter = request.args.get('app', 'all').lower()
+    search_query = request.args.get('q', '').strip() # NEW: Get search text
+    
     try:
-        # SAFETY FIX: Handle empty databases or None values that cause 500 errors
-        products = Product.query.order_by(Product.id.desc()).all()
+        # Start with a base query
+        query = Product.query
+        
+        # 1. Apply Search Filter if text exists
+        if search_query:
+            query = query.filter(Product.name.contains(search_query))
+            
+        # 2. Apply Platform Filter
+        if app_filter != 'all':
+            if app_filter == 'others':
+                main_apps = ['amazon', 'flipkart', 'meesho', 'myntra', 'ajio']
+                query = query.filter(~Product.app.in_(main_apps))
+            else:
+                query = query.filter_by(app=app_filter)
+
+        # Execute query and order by latest
+        products = query.order_by(Product.id.desc()).all()
+
+        # Safety price formatting
         for p in products:
             if p.price is None: p.price = 0
-            if p.score is None: p.score = 85
-        return render_template('store.html', products=products)
+            
+        return render_template('store.html', products=products, search_query=search_query)
     except Exception as e:
-        print(f"Store Page Error: {e}")
+        print(f"Store Search Error: {e}")
         return render_template('store.html', products=[])
-
 @app.route('/admin-add', methods=['POST'])
 @login_required
 def admin_add():
@@ -216,3 +236,4 @@ if __name__ == '__main__':
         db.create_all()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
