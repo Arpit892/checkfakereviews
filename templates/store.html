@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verified Loot Store | AI-Powered Shopping</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { 
             --primary: #00d2ff; 
@@ -22,6 +23,7 @@
             min-height: 100vh;
         }
 
+        /* --- Sidebar & Layout --- */
         .wrapper { display: flex; min-height: 100vh; padding: 30px; gap: 30px; }
         
         .sidebar { 
@@ -36,139 +38,66 @@
             height: fit-content;
         }
 
-        .sidebar h2 { color: var(--primary); font-size: 1.5rem; margin-bottom: 5px; letter-spacing: -0.5px; }
-        .sidebar p { font-size: 0.8rem; opacity: 0.6; margin-bottom: 25px; }
-        
-        .filter-group { margin-bottom: 25px; }
-        .filter-group h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5; margin-bottom: 12px; }
-        
+        .sidebar h2 { color: var(--primary); font-size: 1.5rem; margin-bottom: 5px; }
+        .filter-group { margin-top: 25px; }
+        .filter-group h4 { font-size: 0.75rem; text-transform: uppercase; opacity: 0.5; letter-spacing: 1px; margin-bottom: 10px; }
         .filter-group a { 
-            display: block; 
-            color: #bbb; 
-            text-decoration: none; 
-            padding: 10px 15px; 
-            border-radius: 12px; 
-            margin: 4px 0; 
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
+            display: block; color: #aaa; text-decoration: none; padding: 8px 12px; border-radius: 10px; transition: 0.3s; font-size: 0.9rem;
         }
+        .filter-group a:hover { background: rgba(0, 210, 255, 0.1); color: var(--primary); transform: translateX(5px); }
 
-        .filter-group a:hover { 
-            background: rgba(0, 210, 255, 0.1); 
-            color: var(--primary); 
-            transform: translateX(5px);
-        }
-
+        /* --- Product Grid --- */
         .grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
         
         .card { 
             background: var(--card-bg); 
-            backdrop-filter: blur(10px); 
             border-radius: 24px; 
             padding: 20px; 
             border: 1px solid var(--border-color); 
-            text-align: center;
-            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            position: relative;
+            transition: 0.4s ease;
+            display: flex; flex-direction: column;
         }
 
-        .card:hover { 
-            transform: translateY(-10px); 
-            border-color: rgba(0, 210, 255, 0.4); 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4); 
-            background: rgba(255, 255, 255, 0.05);
-        }
+        .card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
 
-        .card img { width: 100%; border-radius: 18px; margin-bottom: 15px; object-fit: cover; aspect-ratio: 1/1; }
-        .card h3 { font-size: 1.1rem; margin: 10px 0; font-weight: 600; height: 2.4em; overflow: hidden; }
-        .card .price { font-size: 1.5rem; font-weight: 800; color: #fff; margin: 10px 0; }
-        
+        /* --- Image Fixes --- */
+        .img-container { width: 100%; aspect-ratio: 1/1; border-radius: 18px; overflow: hidden; background: #fff; margin-bottom: 15px; }
+        .card img { width: 100%; height: 100%; object-fit: contain; }
+
         .ai-badge { 
-            background: rgba(0, 210, 255, 0.1); 
-            color: var(--primary);
-            padding: 6px 14px; 
-            border-radius: 100px; 
-            font-size: 0.75rem;
-            border: 1px solid rgba(0, 210, 255, 0.3); 
-            display: inline-block; 
-            margin-bottom: 15px;
-            font-weight: 600;
+            background: rgba(0, 210, 255, 0.1); color: var(--primary); padding: 5px 12px; border-radius: 100px; font-size: 0.7rem; font-weight: 700; margin-bottom: 15px; border: 1px solid rgba(0,210,255,0.2);
         }
 
-        .action-btns { display: flex; gap: 10px; margin-top: 15px; }
-
+        .price { font-size: 1.6rem; font-weight: 800; margin: 10px 0; }
         .btn-buy { 
-            flex: 2;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: #fff; 
-            padding: 14px; 
-            text-decoration: none; 
-            border-radius: 14px;
-            font-weight: bold; 
-            font-size: 0.9rem;
-            box-shadow: 0 4px 15px rgba(58, 123, 213, 0.3);
-            transition: 0.3s;
-            text-align: center;
+            flex: 1; background: linear-gradient(to right, var(--primary), var(--secondary)); color: #000; text-decoration: none; padding: 12px; border-radius: 12px; font-weight: 800; text-align: center;
         }
+        .btn-vault { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: white; padding: 10px 15px; border-radius: 12px; cursor: pointer; }
 
-        .btn-vault {
-            flex: 1;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--border-color);
-            color: white;
-            border-radius: 14px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: 0.3s;
-        }
-
-        .btn-vault:hover { background: rgba(0, 210, 255, 0.1); border-color: var(--primary); }
-
-        .btn-buy:hover { opacity: 0.9; transform: scale(1.02); }
-
-        .user-section {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        @media (max-width: 900px) { 
-            .wrapper { flex-direction: column; padding: 15px; } 
-            .sidebar { width: auto; position: relative; top: 0; } 
-        }
+        @media (max-width: 900px) { .wrapper { flex-direction: column; } .sidebar { width: 100%; position: relative; top: 0; } }
     </style>
 </head>
 <body>
     <div class="wrapper">
         <aside class="sidebar">
             <h2>Loot Store</h2>
-            <p>Verified by CheckFake AI</p>
+            <p style="font-size: 0.8rem; opacity: 0.6;">Verified by CheckFake AI</p>
             
             <div class="filter-group">
-                <h4>Platform</h4>
+                <h4>Platforms</h4>
                 <a href="/store?app=all">🌐 All Platforms</a>
-                <a href="/store?app=meesho">🛍️ Meesho Finds</a>
-                <a href="/store?app=flipkart">🟦 Flipkart Deals</a>
-                <a href="/store?app=amazon">🟧 Amazon Choice</a>
-                <a href="/store?app=myntra">👗 Myntra Style</a>
-                <a href="/store?app=ajio">👔 Ajio Luxe</a>
+                <a href="/store?app=flipkart">🟦 Flipkart</a>
+                <a href="/store?app=amazon">🟧 Amazon</a>
+                <a href="/store?app=meesho">🛍️ Meesho</a>
             </div>
 
-            <div class="filter-group">
-                <h4>Budget</h4>
-                <a href="/store?price=under500">🔥 Under ₹500</a>
-                <a href="/store?price=500to1000">💰 ₹500 - ₹1,000</a>
-                <a href="/store?price=1000to2000">✨ ₹1,000 - ₹2,000</a>
-                <a href="/store?price=above2000">💎 ₹2,000+ Premium</a>
-            </div>
-
-            <div class="user-section">
+            <div class="user-section" style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 20px;">
                 {% if current_user.is_authenticated %}
-                    <h4 style="font-size: 0.8rem; opacity: 0.5;">Welcome, {{ current_user.username }}</h4>
-                    <a href="/cart" style="color: var(--primary); text-decoration: none; display: block; margin: 10px 0;">🔒 My Loot Vault</a>
-                    <a href="/logout" style="color: #ff4d4d; text-decoration: none; font-size: 0.9rem;">Logout</a>
+                    <p style="font-size: 0.8rem; margin-bottom: 10px;">User: {{ current_user.username }}</p>
+                    <a href="/cart" style="color: var(--primary); text-decoration: none; display: block; margin-bottom: 10px;"><i class="fas fa-vault"></i> My Vault</a>
+                    <a href="/logout" style="color: #ff4d4d; text-decoration: none; font-size: 0.8rem;">Logout</a>
                 {% else %}
-                    <a href="/login" class="btn-buy" style="display: block;">Login to Save Deals</a>
+                    <a href="/login" style="color: var(--primary); text-decoration: none; font-weight: bold;">Login to save deals</a>
                 {% endif %}
             </div>
         </aside>
@@ -176,25 +105,28 @@
         <main class="grid">
             {% for p in products %}
             <div class="card">
-                <span class="ai-badge">AI Score: {{ p.score }}% Verified</span>
-                <img src="{{ p.img }}" alt="{{ p.name }}">
-                <h3>{{ p.name }}</h3>
-                <p class="price">₹{{ p.price }}</p>
+                <div class="ai-badge"><i class="fas fa-check-circle"></i> AI Score: {{ p.score }}% Trusted</div>
+                <div class="img-container">
+                    <img src="{{ p.img }}" alt="{{ p.name }}" onerror="this.src='https://via.placeholder.com/300?text=Product+Image'">
+                </div>
+                <h3 style="font-size: 1rem; height: 2.5em; overflow: hidden; margin-bottom: 5px;">{{ p.name }}</h3>
+                <p style="color: var(--primary); font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">{{ p.app }}</p>
+                <p class="price">₹{{ "{:,}".format(p.price) }}</p>
                 
-                <div class="action-btns">
-                    <a href="{{ p.link }}" target="_blank" class="btn-buy">Buy Now</a>
+                <div style="display: flex; gap: 10px; margin-top: auto;">
+                    <a href="{{ p.link }}" target="_blank" class="btn-buy">Get Loot</a>
                     {% if current_user.is_authenticated %}
-                        <button onclick="addToVault('{{ p.name }}', {{ p.price }}, '{{ p.img }}')" class="btn-vault" title="Save to Vault">🛒</button>
+                        <button onclick="addToVault('{{ p.name }}', {{ p.price }}, '{{ p.img }}')" class="btn-vault">🛒</button>
                     {% endif %}
                 </div>
             </div>
             {% endfor %}
-            
+
             {% if not products %}
-                <div style="text-align: center; grid-column: 1/-1; padding: 100px 20px; opacity: 0.5;">
-                    <p style="font-size: 1.2rem;">No deals found in this category.</p>
-                    <p>Try adjusting your filters or checking back later!</p>
-                </div>
+            <div style="grid-column: 1/-1; text-align: center; padding: 100px; opacity: 0.5;">
+                <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                <p>No verified deals found yet.</p>
+            </div>
             {% endif %}
         </main>
     </div>
@@ -206,14 +138,9 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: name, price: price, img: img })
             })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Something went wrong. Please try again.');
-            });
+            .then(res => res.json())
+            .then(data => alert(data.message))
+            .catch(() => alert("Error saving to vault. Try again."));
         }
     </script>
 </body>
