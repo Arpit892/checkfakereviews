@@ -47,71 +47,91 @@
         }
 
         .logo { color: white; font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px; text-decoration: none; }
-        .nav-menu { display: flex; align-items: center; gap: 25px; }
+        .nav-menu { display: flex; align-items: center; gap: 20px; }
+        
+        /* THE LOOT BUTTON STYLE */
+        .loot-btn {
+            background: var(--accent);
+            color: #000 !important;
+            padding: 10px 22px;
+            border-radius: 50px;
+            font-weight: 800;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
+            animation: pulse-glow 2s infinite;
+            transition: 0.3s;
+        }
+        .loot-btn:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 0 25px rgba(255, 204, 0, 0.7);
+            background: #fff;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(255, 204, 0, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(255, 204, 0, 0.7); }
+            100% { box-shadow: 0 0 5px rgba(255, 204, 0, 0.4); }
+        }
+
         .nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: 0.3s; }
-        .nav-link:hover { color: var(--accent); transform: translateY(-2px); }
+        .nav-link:hover { color: var(--accent); }
 
         .auth-buttons { display: flex; align-items: center; gap: 15px; }
         .btn-login { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
         .btn-signup { background: white; color: var(--primary); text-decoration: none; font-weight: 700; padding: 10px 22px; border-radius: 50px; font-size: 0.9rem; transition: 0.3s; }
-        .btn-signup:hover { background: var(--accent); color: black; transform: translateY(-2px); }
 
-        /* --- HERO --- */
-        .hero {
-            background: var(--primary);
-            color: white;
-            text-align: center;
-            padding: 80px 20px 140px 20px;
-            position: relative;
-        }
-
+        /* --- HERO & CONTENT --- */
+        .hero { background: var(--primary); color: white; text-align: center; padding: 80px 20px 140px 20px; position: relative; }
         .hero h1 { font-size: 3.5rem; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
         .hero p { font-size: 1.1rem; color: rgba(255,255,255,0.9); margin-bottom: 40px; max-width: 700px; margin-left: auto; margin-right: auto; }
-
-        .search-container {
-            background: white; padding: 8px; border-radius: 12px; display: flex; width: 100%; max-width: 750px; margin: 0 auto; box-shadow: 0 20px 50px rgba(0,0,0,0.2); position: relative; z-index: 10;
-        }
-
+        .search-container { background: white; padding: 8px; border-radius: 12px; display: flex; width: 100%; max-width: 750px; margin: 0 auto; box-shadow: 0 20px 50px rgba(0,0,0,0.2); position: relative; z-index: 10; }
         input { flex: 1; border: none; outline: none; padding: 15px 20px; font-size: 1rem; color: #333; border-radius: 8px; }
         #scanBtn { background: var(--accent); color: #000; border: none; padding: 0 35px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .wave-divider { position: absolute; bottom: 0; left: 0; width: 100%; overflow: hidden; line-height: 0; }
         .wave-divider svg { display: block; width: calc(130% + 1.3px); height: 80px; }
 
-        /* --- RESULTS & CONTENT SECTIONS --- */
         .result-box { background: white; padding: 40px; border-radius: 16px; max-width: 600px; margin: -50px auto 40px auto; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; position: relative; z-index: 20; }
         .hidden { display: none; }
         .section { padding: 80px 5%; text-align: center; }
         .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; max-width: 1200px; margin: 40px auto; }
-        .card { background: white; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: left; transition: 0.3s; }
-        .card:hover { transform: translateY(-10px); border-color: var(--primary); }
+        .card { background: white; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: left; }
         .icon-box { width: 60px; height: 60px; background: rgba(0, 86, 210, 0.1); color: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 25px; }
 
-        /* --- FOOTER --- */
-        footer { background: #111827; color: white; padding: 60px 5%; }
+        footer { background: #111827; color: white; padding: 60px 5%; margin-top: auto; }
         .footer-content { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; }
-        .footer-col a { display: block; color: #9ca3af; text-decoration: none; margin-bottom: 10px; font-size: 0.9rem; transition: 0.3s; }
-        .footer-col a:hover { color: var(--accent); }
+        .footer-col a { display: block; color: #9ca3af; text-decoration: none; margin-bottom: 10px; font-size: 0.9rem; }
 
-        @media (max-width: 768px) { h1 { font-size: 2.2rem; } .nav-menu { display: none; } .search-container { flex-direction: column; padding: 10px; } #scanBtn { width: 100%; padding: 15px; margin-top: 10px; } }
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2rem; }
+            .nav-link { display: none; }
+            .loot-btn { padding: 8px 15px; font-size: 0.75rem; }
+            .search-container { flex-direction: column; padding: 10px; }
+            #scanBtn { width: 100%; padding: 15px; margin-top: 10px; }
+        }
     </style>
 </head>
 <body>
 
     <nav>
-        <a href="/" class="logo"><i class="fas fa-shield-alt"></i> CheckFakeReviews</a>
+        <a href="/" class="logo"><i class="fas fa-shield-alt"></i> CheckFake</a>
         <div class="nav-menu">
-            <a href="{{ url_for('store') }}" class="nav-link" style="color: var(--accent); font-weight: 700;">🔥 Loot Store</a>
+            <a href="{{ url_for('store') }}" class="loot-btn">
+                <i class="fas fa-fire"></i> LOOT STORE
+            </a>
             <a href="#how-it-works" class="nav-link">How it Works</a>
-            <a href="{{ url_for('about') }}" class="nav-link">About Us</a>
-            <a href="{{ url_for('contact') }}" class="nav-link">Contact</a>
         </div>
+        
         <div class="auth-buttons">
             {% if current_user.is_authenticated %}
                 <a href="{{ url_for('view_cart') }}" class="btn-login"><i class="fas fa-vault"></i> My Vault</a>
                 <a href="{{ url_for('logout') }}" class="btn-signup" style="background: #ff4d4d; color: white;">Logout</a>
             {% else %}
-                <a href="{{ url_for('login') }}" class="btn-login"><i class="fas fa-user"></i> Login</a>
-                <a href="{{ url_for('signup') }}" class="btn-signup">Sign Up Free</a>
+                <a href="{{ url_for('login') }}" class="btn-login">Login</a>
+                <a href="{{ url_for('signup') }}" class="btn-signup">Join Free</a>
             {% endif %}
         </div>
     </nav>
@@ -183,20 +203,6 @@
                 <h3>TrueScore™</h3>
                 <p>We recalculate the star rating based only on legitimate, verified buyer feedback from real consumers.</p>
             </div>
-        </div>
-    </div>
-
-    <div class="section" style="text-align: left; max-width: 1000px; margin: 0 auto;">
-        <h2>Is This Product Safe? Check Reviews Instantly</h2>
-        <p style="color: #6b7280; margin-top: 15px; line-height: 1.6;">
-            Shopping online is risky. Sellers often buy fake 5-star reviews to trick you. <strong>CheckFakeReviews.online</strong> is a free AI tool that analyzes review patterns to detect scams.
-        </p>
-        <h3 style="margin-top: 30px;">Supported Platforms</h3>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-            <span style="background:#ff9900; padding: 5px 15px; border-radius: 5px; color: white;">Amazon India</span>
-            <span style="background:#2874f0; padding: 5px 15px; border-radius: 5px; color: white;">Flipkart</span>
-            <span style="background:#E1306C; padding: 5px 15px; border-radius: 5px; color: white;">Myntra</span>
-            <span style="background:#dd209e; padding: 5px 15px; border-radius: 5px; color: white;">Meesho</span>
         </div>
     </div>
 
