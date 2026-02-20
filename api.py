@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, f
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func
 from selenium import webdriver
@@ -18,7 +17,6 @@ import os
 # --- 1. CONFIGURATION ---
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'trusted-startup-2026')
-# Using absolute path to ensure Render finds the DB every time
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'checkfake_master.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -67,112 +65,75 @@ def get_driver():
 
 def auto_generate_deal(earnkaro_url):
     try:
-        # Resolve EarnKaro Redirect
         response = requests.get(earnkaro_url, allow_redirects=True, timeout=10)
         original_url = response.url
-        
         driver = get_driver()
         driver.get(original_url)
         time.sleep(2) 
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-        
         name = soup.find("meta", property="og:title")["content"] if soup.find("meta", property="og:title") else "Premium Deal"
         img = soup.find("meta", property="og:image")["content"] if soup.find("meta", property="og:image") else "https://via.placeholder.com/300"
-        
         clean_name = name.split('|')[0].split('-')[0].strip()[:60]
-
-        app_name = "Verified Store"
-        if "amazon" in original_url: app_name = "Amazon"
-        elif "flipkart" in original_url: app_name = "Flipkart"
-        elif "meesho" in original_url: app_name = "Meesho"
-
+        app_name = "Store"
+        if "amazon" in original_url.lower(): app_name = "amazon"
+        elif "flipkart" in original_url.lower(): app_name = "flipkart"
+        elif "meesho" in original_url.lower(): app_name = "meesho"
+        elif "myntra" in original_url.lower(): app_name = "myntra"
+        elif "ajio" in original_url.lower(): app_name = "ajio"
         driver.quit()
         return {"name": clean_name, "img": img, "app": app_name}
-    except Exception as e:
-        print(f"Auto-Stock Error: {e}")
-        return None
+    except: return None
 
 # --- 4. ROUTES ---
 @app.route('/')
-def index():
-    return render_template('index.html')
+def index(): return render_template('index.html')
 
 @app.route('/store')
 def store():
-    # Get parameters from the URL
     app_filter = request.args.get('app', 'all').lower()
-    search_query = request.args.get('q', '').strip() # NEW: Get search text
-    
+    search_query = request.args.get('q', '').strip()
     try:
-        # Start with a base query
         query = Product.query
-        
-        # 1. Apply Search Filter if text exists
         if search_query:
             query = query.filter(Product.name.contains(search_query))
-            
-        # 2. Apply Platform Filter
         if app_filter != 'all':
             if app_filter == 'others':
                 main_apps = ['amazon', 'flipkart', 'meesho', 'myntra', 'ajio']
                 query = query.filter(~Product.app.in_(main_apps))
             else:
                 query = query.filter_by(app=app_filter)
-
-        # Execute query and order by latest
         products = query.order_by(Product.id.desc()).all()
-
-        # Safety price formatting
         for p in products:
             if p.price is None: p.price = 0
-            
+            if p.score is None: p.score = 85
         return render_template('store.html', products=products, search_query=search_query)
-    except Exception as e:
-        print(f"Store Search Error: {e}")
-        return render_template('store.html', products=[])
+    except: return render_template('store.html', products=[])
+
 @app.route('/admin-add', methods=['POST'])
 @login_required
 def admin_add():
     if current_user.username != 'admin': return redirect('/')
-    
-    ek_url = request.form.get('url')
-    price_val = request.form.get('price')
-    
+    ek_url, price_val = request.form.get('url'), request.form.get('price')
     details = auto_generate_deal(ek_url)
     if details:
-        new_product = Product(
-            name=details['name'],
-            price=int(price_val) if price_val else 0,
-            app=details['app'],
-            link=ek_url,
-            img=details['img']
-        )
+        new_product = Product(name=details['name'], price=int(price_val) if price_val else 0, app=details['app'], link=ek_url, img=details['img'])
         db.session.add(new_product)
         db.session.commit()
-        flash(f"Successfully listed: {details['name']}!")
-    else:
-        flash("Could not fetch product details. Please check the link.")
     return redirect(url_for('admin_dashboard'))
 
-# --- AUTH & NAVIGATION ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email, pwd = request.form.get('email'), request.form.get('password')
-        user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password, pwd):
+        user = User.query.filter_by(email=request.form.get('email')).first()
+        if user and check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             return redirect(url_for('store'))
-        flash('Check your email and password.')
     return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        name, email, pwd = request.form.get('username'), request.form.get('email'), request.form.get('password')
-        if User.query.filter_by(email=email).first():
-            return redirect(url_for('login'))
-        new_user = User(username=name, email=email, password=generate_password_hash(pwd, method='pbkdf2:sha256'))
+        new_user = User(username=request.form.get('username'), email=request.form.get('email'), password=generate_password_hash(request.form.get('password'), method='pbkdf2:sha256'))
         db.session.add(new_user)
         db.session.commit()
         return redirect(url_for('login'))
@@ -182,22 +143,11 @@ def signup():
 @login_required
 def admin_dashboard():
     if current_user.username != 'admin': return redirect('/')
-    stats = {
-        "users": User.query.count(),
-        "items": Product.query.count(),
-        "recent": User.query.order_by(User.id.desc()).limit(5).all(),
-        "popular": db.session.query(Product.name, func.count(Product.id)).group_by(Product.name).limit(5).all()
-    }
+    stats = {"users": User.query.count(), "items": Product.query.count(), "recent": User.query.order_by(User.id.desc()).limit(5).all()}
     return render_template('admin_dashboard.html', stats=stats)
 
 @app.route('/analyze', methods=['POST'])
-def analyze():
-    data = request.json
-    url_match = re.search(r'(https?://\S+)', data.get('url', ''))
-    if not url_match: return jsonify({"error": "Invalid URL"}), 400
-    
-    # Static response for stability
-    return jsonify({"total": 12, "score": 88, "verdict": "Trusted ✅", "real": 10, "fake": 2})
+def analyze(): return jsonify({"total": 12, "score": 88, "verdict": "Trusted ✅", "real": 10, "fake": 2})
 
 @app.route('/add-to-cart', methods=['POST'])
 @login_required
@@ -227,13 +177,9 @@ def privacy(): return render_template('privacy.html')
 def terms(): return render_template('terms.html')
 
 @app.route('/logout')
-def logout():
-    logout_user()
-    return redirect('/')
+def logout(): logout_user(); return redirect('/')
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
+    with app.app_context(): db.create_all()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
