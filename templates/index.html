@@ -44,7 +44,6 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
 
-        /* The Vertical Stack for Logo and Loot Store */
         .brand-stack {
             display: flex;
             flex-direction: column;
@@ -109,10 +108,27 @@
         .card { background: white; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: left; }
         .icon-box { width: 50px; height: 50px; background: rgba(0, 86, 210, 0.1); color: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 20px; font-weight: 800; }
 
+        /* --- FOOTER STYLING --- */
         footer { background: #111827; color: white; padding: 60px 5%; margin-top: auto; }
-        .footer-col a { display: block; color: #9ca3af; text-decoration: none; margin-bottom: 10px; font-size: 0.85rem; }
+        .footer-content { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 40px; 
+            text-align: left; 
+        }
+        .footer-links-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .footer-links-col a {
+            color: #9ca3af;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+        .footer-links-col a:hover { color: var(--accent); }
 
-        /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 768px) {
             .nav-menu { display: none; }
             .logo { font-size: 1.1rem; }
@@ -185,10 +201,25 @@
     </div>
 
     <footer>
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px;">
-            <div><h4>CheckFake</h4><p style="color:#9ca3af; font-size:0.8rem;">Building e-commerce transparency.</p></div>
-            <div><h4>Links</h4><a href="{{ url_for('store') }}">Loot Store</a><a href="{{ url_for('about') }}">About Us</a></div>
-            <div><h4>Legal</h4><a href="{{ url_for('privacy') }}">Privacy Policy</a><a href="{{ url_for('terms') }}">Terms</a></div>
+        <div class="footer-content">
+            <div>
+                <p style="color: white; font-weight: 700; font-size: 1.1rem; margin-bottom: 10px;">CheckFakeReviews</p>
+                <p style="color:#9ca3af; font-size:0.8rem; line-height: 1.6;">Building e-commerce transparency using AI-powered review analysis.</p>
+            </div>
+            
+            <div class="footer-links-col">
+                <a href="{{ url_for('store') }}">Loot Store</a>
+                <a href="{{ url_for('about') }}">About Us</a>
+            </div>
+
+            <div class="footer-links-col">
+                <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+                <a href="{{ url_for('terms') }}">Terms of Service</a>
+            </div>
+        </div>
+        
+        <div style="text-align:center; margin-top:40px; color:#4b5563; font-size:0.75rem; border-top: 1px solid #1f2937; padding-top: 20px;">
+            &copy; 2026 CheckFakeReviews. All rights reserved.
         </div>
     </footer>
 
