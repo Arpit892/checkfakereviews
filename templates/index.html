@@ -13,12 +13,10 @@
     
     <style>
         :root {
-            --primary: #0056d2;      /* Royal Blue */
-            --accent: #ffcc00;       /* Signal Yellow */
-            --insta: #E1306C;        /* Instagram Pink */
-            --text-dark: #1f2937;    /* Charcoal */
-            --text-light: #6b7280;   /* Grey */
-            --bg-light: #f9fafb;     /* Off-white */
+            --primary: #0056d2;
+            --accent: #ffcc00;
+            --text-dark: #1f2937;
+            --bg-light: #f9fafb;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -33,83 +31,94 @@
             min-height: 100vh;
         }
 
-        /* --- NAVBAR --- */
+        /* --- NAVBAR STYLING --- */
         nav {
             background: var(--primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 5%;
+            padding: 10px 5%;
             position: sticky;
             top: 0;
             z-index: 1000;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
 
-        .logo { color: white; font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px; text-decoration: none; }
-        .nav-menu { display: flex; align-items: center; gap: 20px; }
-        
-        /* THE LOOT BUTTON STYLE */
+        /* The Vertical Stack for Logo and Loot Store */
+        .brand-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .logo { 
+            color: white; 
+            font-size: 1.3rem; 
+            font-weight: 700; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            text-decoration: none; 
+        }
+
         .loot-btn {
             background: var(--accent);
             color: #000 !important;
-            padding: 10px 22px;
+            padding: 4px 15px;
             border-radius: 50px;
             font-weight: 800;
             text-decoration: none;
-            font-size: 0.85rem;
+            font-size: 0.7rem;
             display: flex;
             align-items: center;
-            gap: 8px;
-            box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
+            gap: 5px;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.4);
             animation: pulse-glow 2s infinite;
             transition: 0.3s;
-        }
-        .loot-btn:hover {
-            transform: scale(1.05) translateY(-2px);
-            box-shadow: 0 0 25px rgba(255, 204, 0, 0.7);
-            background: #fff;
         }
 
         @keyframes pulse-glow {
             0% { box-shadow: 0 0 5px rgba(255, 204, 0, 0.4); }
-            50% { box-shadow: 0 0 20px rgba(255, 204, 0, 0.7); }
+            50% { box-shadow: 0 0 15px rgba(255, 204, 0, 0.7); }
             100% { box-shadow: 0 0 5px rgba(255, 204, 0, 0.4); }
         }
 
-        .nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: 0.3s; }
+        .loot-btn:hover { transform: scale(1.05); background: #fff; }
+
+        .nav-menu { display: flex; align-items: center; gap: 20px; }
+        .nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-size: 0.9rem; transition: 0.3s; }
         .nav-link:hover { color: var(--accent); }
 
         .auth-buttons { display: flex; align-items: center; gap: 15px; }
         .btn-login { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
-        .btn-signup { background: white; color: var(--primary); text-decoration: none; font-weight: 700; padding: 10px 22px; border-radius: 50px; font-size: 0.9rem; transition: 0.3s; }
+        .btn-signup { background: white; color: var(--primary); text-decoration: none; font-weight: 700; padding: 8px 20px; border-radius: 50px; font-size: 0.85rem; }
 
-        /* --- HERO & CONTENT --- */
-        .hero { background: var(--primary); color: white; text-align: center; padding: 80px 20px 140px 20px; position: relative; }
-        .hero h1 { font-size: 3.5rem; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
-        .hero p { font-size: 1.1rem; color: rgba(255,255,255,0.9); margin-bottom: 40px; max-width: 700px; margin-left: auto; margin-right: auto; }
+        /* --- CONTENT SECTIONS --- */
+        .hero { background: var(--primary); color: white; text-align: center; padding: 60px 20px 120px 20px; position: relative; }
+        .hero h1 { font-size: 3rem; font-weight: 700; margin-bottom: 20px; }
         .search-container { background: white; padding: 8px; border-radius: 12px; display: flex; width: 100%; max-width: 750px; margin: 0 auto; box-shadow: 0 20px 50px rgba(0,0,0,0.2); position: relative; z-index: 10; }
-        input { flex: 1; border: none; outline: none; padding: 15px 20px; font-size: 1rem; color: #333; border-radius: 8px; }
-        #scanBtn { background: var(--accent); color: #000; border: none; padding: 0 35px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .wave-divider { position: absolute; bottom: 0; left: 0; width: 100%; overflow: hidden; line-height: 0; }
-        .wave-divider svg { display: block; width: calc(130% + 1.3px); height: 80px; }
+        input { flex: 1; border: none; outline: none; padding: 15px; font-size: 1rem; }
+        #scanBtn { background: var(--accent); color: #000; border: none; padding: 0 35px; border-radius: 8px; font-weight: 700; cursor: pointer; }
 
-        .result-box { background: white; padding: 40px; border-radius: 16px; max-width: 600px; margin: -50px auto 40px auto; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; position: relative; z-index: 20; }
-        .hidden { display: none; }
+        .wave-divider { position: absolute; bottom: 0; left: 0; width: 100%; overflow: hidden; line-height: 0; }
+        .wave-divider svg { display: block; width: calc(130% + 1.3px); height: 60px; }
+
         .section { padding: 80px 5%; text-align: center; }
-        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; max-width: 1200px; margin: 40px auto; }
-        .card { background: white; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: left; }
-        .icon-box { width: 60px; height: 60px; background: rgba(0, 86, 210, 0.1); color: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 25px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; max-width: 1200px; margin: 40px auto; }
+        .card { background: white; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: left; }
+        .icon-box { width: 50px; height: 50px; background: rgba(0, 86, 210, 0.1); color: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 20px; font-weight: 800; }
 
         footer { background: #111827; color: white; padding: 60px 5%; margin-top: auto; }
-        .footer-content { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; }
-        .footer-col a { display: block; color: #9ca3af; text-decoration: none; margin-bottom: 10px; font-size: 0.9rem; }
+        .footer-col a { display: block; color: #9ca3af; text-decoration: none; margin-bottom: 10px; font-size: 0.85rem; }
 
+        /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 768px) {
-            h1 { font-size: 2.2rem; }
-            .nav-link { display: none; }
-            .loot-btn { padding: 8px 15px; font-size: 0.75rem; }
-            .search-container { flex-direction: column; padding: 10px; }
+            .nav-menu { display: none; }
+            .logo { font-size: 1.1rem; }
+            .loot-btn { font-size: 0.65rem; padding: 3px 12px; }
+            .hero h1 { font-size: 2.2rem; }
+            .search-container { flex-direction: column; }
             #scanBtn { width: 100%; padding: 15px; margin-top: 10px; }
         }
     </style>
@@ -117,17 +126,24 @@
 <body>
 
     <nav>
-        <a href="/" class="logo"><i class="fas fa-shield-alt"></i> CheckFake</a>
-        <div class="nav-menu">
+        <div class="brand-stack">
+            <a href="/" class="logo">
+                <i class="fas fa-shield-alt"></i> CheckFakeReviews
+            </a>
             <a href="{{ url_for('store') }}" class="loot-btn">
                 <i class="fas fa-fire"></i> LOOT STORE
             </a>
+        </div>
+
+        <div class="nav-menu">
             <a href="#how-it-works" class="nav-link">How it Works</a>
+            <a href="{{ url_for('about') }}" class="nav-link">About Us</a>
+            <a href="{{ url_for('contact') }}" class="nav-link">Contact</a>
         </div>
         
         <div class="auth-buttons">
             {% if current_user.is_authenticated %}
-                <a href="{{ url_for('view_cart') }}" class="btn-login"><i class="fas fa-vault"></i> My Vault</a>
+                <a href="{{ url_for('view_cart') }}" class="btn-login">Vault</a>
                 <a href="{{ url_for('logout') }}" class="btn-signup" style="background: #ff4d4d; color: white;">Logout</a>
             {% else %}
                 <a href="{{ url_for('login') }}" class="btn-login">Login</a>
@@ -138,136 +154,54 @@
 
     <div class="hero">
         <h1>Verify Before You Buy.</h1>
-        <p>Paste product links from Amazon, Flipkart, Myntra, and more to reveal the Truth.</p>
+        <p>Paste product links from Amazon, Flipkart, Myntra, and more to detect scams instantly.</p>
         <div class="search-container">
             <input type="text" id="urlInput" placeholder="Paste product link here ...">
             <button onclick="analyze()" id="scanBtn">Analyze</button>
         </div>
-        <div id="btnLoader" class="hidden" style="margin-top:20px; color:white;">Processing AI Analysis...</div>
+        <div id="btnLoader" style="display:none; margin-top:20px;">Processing AI Analysis...</div>
 
         <div class="wave-divider">
-            <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="#f9fafb"></path>
-            </svg>
+            <svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="#f9fafb"></path></svg>
         </div>
-    </div>
-
-    <div id="result" class="result-box hidden">
-        <div id="verdictBadge" class="verdict-badge badge-safe">Safe to Buy</div>
-        <div class="score-container">
-            <div id="trustScore" class="score-value">0</div>
-            <p style="color: #6b7280; font-weight: 500;">TRUST SCORE</p>
-        </div>
-        <div class="progress-bg">
-            <div id="scoreBar" class="progress-fill"></div>
-        </div>
-        <p id="analysisText" style="color: #6b7280; font-size: 0.9rem;">Analysis based on <span id="totalReviews">0</span> reviews.</p>
     </div>
 
     <div id="how-it-works" class="section">
         <h2>How It Works</h2>
         <div class="grid-3">
-            <div class="card">
-                <div class="icon-box">1</div>
-                <h3>Copy Product Link</h3>
-                <p>Find the product you want to buy on Amazon, Flipkart, or Myntra and copy its URL.</p>
-            </div>
-            <div class="card">
-                <div class="icon-box">2</div>
-                <h3>Paste & Analyze</h3>
-                <p>Paste the link into our search bar. Our AI immediately starts scanning thousands of reviews.</p>
-            </div>
-            <div class="card">
-                <div class="icon-box">3</div>
-                <h3>Check the Truth</h3>
-                <p>Receive an instant trust score. If the score is low, we'll warn you about suspicious review patterns.</p>
-            </div>
+            <div class="card"><div class="icon-box">1</div><h3>Copy Link</h3><p>Copy any product URL from your favorite shopping app.</p></div>
+            <div class="card"><div class="icon-box">2</div><h3>Paste & Scan</h3><p>Paste it here. AI scans thousands of reviews for patterns.</p></div>
+            <div class="card"><div class="icon-box">3</div><h3>Check Truth</h3><p>Receive an instant TrueScore™ before you pay.</p></div>
         </div>
     </div>
 
     <div class="section" style="background:#fff;">
         <h2>Why trust CheckFakeReviews?</h2>
         <div class="grid-3">
-            <div class="card">
-                <div class="icon-box"><i class="fas fa-robot"></i></div>
-                <h3>Bot Detection</h3>
-                <p>We identify repetitive language patterns common in "click farms" where paid bots generate fake ratings.</p>
-            </div>
-            <div class="card">
-                <div class="icon-box"><i class="fas fa-wallet"></i></div>
-                <h3>Save Money</h3>
-                <p>Avoid buying low-quality products that look good on paper. We save you from the hassle of returns.</p>
-            </div>
-            <div class="card">
-                <div class="icon-box"><i class="fas fa-chart-line"></i></div>
-                <h3>TrueScore™</h3>
-                <p>We recalculate the star rating based only on legitimate, verified buyer feedback from real consumers.</p>
-            </div>
+            <div class="card"><div class="icon-box"><i class="fas fa-robot"></i></div><h3>Bot Detection</h3><p>We spot repetitive patterns used by click farms.</p></div>
+            <div class="card"><div class="icon-box"><i class="fas fa-wallet"></i></div><h3>Save Money</h3><p>Avoid buying low-quality items with fake ratings.</p></div>
+            <div class="card"><div class="icon-box"><i class="fas fa-chart-line"></i></div><h3>TrueScore™</h3><p>Real ratings based on verified Indian buyers.</p></div>
         </div>
     </div>
 
     <footer>
-        <div class="footer-content">
-            <div class="footer-col">
-                <h4>CheckFakeReviews</h4>
-                <p style="color:#9ca3af; font-size: 0.85rem;">Building transparency in e-commerce using AI.</p>
-            </div>
-            <div class="footer-col">
-                <h4>Navigation</h4>
-                <a href="{{ url_for('store') }}">Loot Store</a>
-                <a href="{{ url_for('about') }}">About Us</a>
-                <a href="{{ url_for('contact') }}">Contact</a>
-            </div>
-            <div class="footer-col">
-                <h4>Legal</h4>
-                <a href="{{ url_for('privacy') }}">Privacy Policy</a>
-                <a href="{{ url_for('terms') }}">Terms of Service</a>
-            </div>
-        </div>
-        <div style="text-align:center; margin-top:40px; color:#6b7280; font-size:0.8rem;">
-            &copy; 2026 CheckFakeReviews. All rights reserved.
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px;">
+            <div><h4>CheckFake</h4><p style="color:#9ca3af; font-size:0.8rem;">Building e-commerce transparency.</p></div>
+            <div><h4>Links</h4><a href="{{ url_for('store') }}">Loot Store</a><a href="{{ url_for('about') }}">About Us</a></div>
+            <div><h4>Legal</h4><a href="{{ url_for('privacy') }}">Privacy Policy</a><a href="{{ url_for('terms') }}">Terms</a></div>
         </div>
     </footer>
 
     <script>
     function analyze() {
-        const urlInput = document.getElementById('urlInput');
-        const btn = document.getElementById('scanBtn');
-        const loader = document.getElementById('btnLoader');
-        const resultBox = document.getElementById('result');
-        const scoreBar = document.getElementById('scoreBar');
-
-        const url = urlInput.value.trim();
-        if (!url) { alert("Paste a product link first!"); return; }
-
-        btn.disabled = true;
-        loader.classList.remove('hidden');
-        resultBox.classList.add('hidden');
-
-        fetch('/analyze', { 
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: url })
-        })
-        .then(res => res.json())
-        .then(data => {
-            btn.disabled = false;
-            loader.classList.add('hidden');
-            resultBox.classList.remove('hidden');
-
-            document.getElementById('trustScore').innerText = data.score;
-            document.getElementById('totalReviews').innerText = data.total;
-            scoreBar.style.width = data.score + "%";
-
-            const badge = document.getElementById('verdictBadge');
-            badge.innerText = data.verdict;
-            badge.className = 'verdict-badge ' + (data.score >= 80 ? 'badge-safe' : data.score >= 50 ? 'badge-warn' : 'badge-risk');
-        })
-        .catch(() => {
-            btn.disabled = false;
-            loader.classList.add('hidden');
-            alert("Analysis failed. Please try again.");
-        });
+        const url = document.getElementById('urlInput').value.trim();
+        if(!url) { alert("Paste a link first!"); return; }
+        document.getElementById('btnLoader').style.display = 'block';
+        fetch('/analyze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: url}) })
+        .then(res => res.json()).then(data => {
+            alert("Verdict: " + data.verdict + " | Score: " + data.score + "%");
+            document.getElementById('btnLoader').style.display = 'none';
+        }).catch(() => { document.getElementById('btnLoader').style.display = 'none'; alert("Error scanning."); });
     }
     </script>
 </body>
