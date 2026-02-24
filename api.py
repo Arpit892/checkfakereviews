@@ -14,6 +14,7 @@ import requests
 import re
 import os
 import random
+
 # --- 1. CONFIGURATION ---
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'trusted-startup-2026')
@@ -150,15 +151,10 @@ def admin_dashboard():
 def analyze():
     data = request.json
     url = data.get('url', '')
-
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
-    # Generate a random score so every scan looks unique
-    # This replaces the hardcoded 88
     dynamic_score = random.randint(45, 96) 
-    
-    # Simple logic: If score is high, it's Trusted. If low, it's a Risk.
     if dynamic_score >= 80:
         verdict = "Trusted ✅"
         total, real, fake = 12, 10, 2
@@ -175,6 +171,8 @@ def analyze():
         "verdict": verdict, 
         "real": real, 
         "fake": fake
+    })
+
 @app.route('/add-to-cart', methods=['POST'])
 @login_required
 def add_to_cart():
@@ -205,8 +203,6 @@ def terms(): return render_template('terms.html')
 @app.route('/logout')
 def logout(): logout_user(); return redirect('/')
 
-# Move this OUTSIDE the if __name__ block 
-# This ensures Render/Gunicorn creates your DB tables on startup
 with app.app_context():
     try:
         db.create_all()
@@ -215,7 +211,5 @@ with app.app_context():
         print(f"Database Init Error: {e}")
 
 if __name__ == '__main__':
-    # Use the port Render provides, or default to 5000 for local testing
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
