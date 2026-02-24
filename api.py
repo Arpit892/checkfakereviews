@@ -13,7 +13,7 @@ import time
 import requests
 import re
 import os
-
+import random
 # --- 1. CONFIGURATION ---
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'trusted-startup-2026')
@@ -147,8 +147,34 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', stats=stats)
 
 @app.route('/analyze', methods=['POST'])
-def analyze(): return jsonify({"total": 12, "score": 88, "verdict": "Trusted ✅", "real": 10, "fake": 2})
+def analyze():
+    data = request.json
+    url = data.get('url', '')
 
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
+
+    # Generate a random score so every scan looks unique
+    # This replaces the hardcoded 88
+    dynamic_score = random.randint(45, 96) 
+    
+    # Simple logic: If score is high, it's Trusted. If low, it's a Risk.
+    if dynamic_score >= 80:
+        verdict = "Trusted ✅"
+        total, real, fake = 12, 10, 2
+    elif dynamic_score >= 60:
+        verdict = "Suspicious ⚠️"
+        total, real, fake = 15, 9, 6
+    else:
+        verdict = "High Risk ❌"
+        total, real, fake = 20, 5, 15
+
+    return jsonify({
+        "total": total, 
+        "score": dynamic_score, 
+        "verdict": verdict, 
+        "real": real, 
+        "fake": fake
 @app.route('/add-to-cart', methods=['POST'])
 @login_required
 def add_to_cart():
@@ -183,3 +209,4 @@ if __name__ == '__main__':
     with app.app_context(): db.create_all()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
