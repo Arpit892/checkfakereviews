@@ -205,8 +205,17 @@ def terms(): return render_template('terms.html')
 @app.route('/logout')
 def logout(): logout_user(); return redirect('/')
 
+# Move this OUTSIDE the if __name__ block 
+# This ensures Render/Gunicorn creates your DB tables on startup
+with app.app_context():
+    try:
+        db.create_all()
+        print("Database initialized successfully.")
+    except Exception as e:
+        print(f"Database Init Error: {e}")
+
 if __name__ == '__main__':
-    with app.app_context(): db.create_all()
+    # Use the port Render provides, or default to 5000 for local testing
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
 
