@@ -225,14 +225,21 @@
 
     <script>
     function analyze() {
-        const url = document.getElementById('urlInput').value.trim();
-        if(!url) { alert("Paste a link first!"); return; }
-        document.getElementById('btnLoader').style.display = 'block';
-        fetch('/analyze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: url}) })
-        .then(res => res.json()).then(data => {
-            alert("Verdict: " + data.verdict + " | Score: " + data.score + "%");
-            document.getElementById('btnLoader').style.display = 'none';
-        }).catch(() => { document.getElementById('btnLoader').style.display = 'none'; alert("Error scanning."); });
+        // reading score/verdict fields. This prevents stale or undefined scores.
+const response = await fetch('/analyze', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ url: urlInput.value.trim() })
+});
+const result = await response.json();
+if (!response.ok) {
+  resultBox.textContent = result.error || 'Unable to analyse this URL.';
+  return;
+}
+
+// Only render score fields after a successful response.
+scoreElement.textContent = `${result.score}%`;
+verdictElement.textContent = result.verdict;
     }
     </script>
 </body>
