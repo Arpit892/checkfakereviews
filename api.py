@@ -1,8 +1,11 @@
+import hashlib
 import ipaddress
 import json
 import os
+import re
 import socket
 import time
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -12,27 +15,34 @@ from flask_cors import CORS
 from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
 from openai import OpenAI
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from sqlalchemy.exc import IntegrityError
-from webdriver_manager.chrome import ChromeDriverManager
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 if not app.config["SECRET_KEY"]:
-    raise RuntimeError("SECRET_KEY must be set in Render environment variables.")
+    raise RuntimeError("SECRET_KEY must be set in your host's environment variables.")
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, "checkfake_master.db")
+# Prefer a real DB (e.g. Postgres via DATABASE_URL) so signups survive restarts/redeploys.
+# SQLite falls back only for local dev.
+_db_url = os.environ.get("DATABASE_URL", "sqlite:///" + os.path.join(basedir, "checkfake_master.db"))
+if _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 CORS(app, resources={r"/analyze": {"origins": os.environ.get("FRONTEND_ORIGIN", "*")}})
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
+
+# Reused HTTP session -> connection keep-alive instead of a fresh TCP/TLS handshake per request.
+HTTP = requests.Session()
+HTTP.headers.update({"User-Agent": "Mozilla/5.0 (compatible; CheckFakeReviews/1.0)"})
+
+SCAN_CACHE_MINUTES = int(os.environ.get("SCAN_CACHE_MINUTES", "360"))  # 6 hours default
 
 
 class User(UserMixin, db.Model):
@@ -60,32 +70,35 @@ class CartItem(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
 
+class ScanResult(db.Model):
+    """Cache of the last analysis for a given product URL, so repeat scans are instant."""
+    id = db.Column(db.Integer, primary_key=True)
+    url_hash = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    url = db.Column(db.String(600), nullable=False)
+    total = db.Column(db.Integer, nullable=False)
+    real = db.Column(db.Integer, nullable=False)
+    fake = db.Column(db.Integer, nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    verdict = db.Column(db.String(50), nullable=False)
+    method = db.Column(db.String(20), nullable=False)  # "ai" or "heuristic"
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 
-def get_driver():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("user-agent=Mozilla/5.0 (compatible; CheckFakeReviews/1.0)")
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
-
 def auto_generate_deal(earnkaro_url):
+    """Resolve an affiliate link and read its og:title / og:image straight from the HTML.
+    No headless browser needed -- these meta tags are almost always present in the raw
+    HTML response, which keeps this fast and removes a heavy Selenium/Chrome dependency."""
     try:
-        response = requests.get(earnkaro_url, allow_redirects=True, timeout=10)
+        response = HTTP.get(earnkaro_url, allow_redirects=True, timeout=10)
         response.raise_for_status()
-        driver = get_driver()
-        driver.get(response.url)
-        time.sleep(2)
-        soup = BeautifulSoup(driver.page_source, "html.parser")
+        soup = BeautifulSoup(response.text, "html.parser")
         name = soup.find("meta", property="og:title")
         image = soup.find("meta", property="og:image")
-        driver.quit()
         title = name["content"] if name else "Premium Deal"
         return {
             "name": title.split("|")[0].split("-")[0].strip()[:60],
@@ -98,7 +111,7 @@ def auto_generate_deal(earnkaro_url):
 
 # Only fetch known shopping sites. This is both product validation and SSRF protection.
 SUPPORTED_STORES = {"amazon.in", "amazon.com", "flipkart.com", "meesho.com", "myntra.com", "ajio.com"}
-MAX_REVIEWS = 30
+MAX_REVIEWS = int(os.environ.get("MAX_REVIEWS", "30"))
 MAX_REVIEW_CHARS = 800
 
 
@@ -125,14 +138,13 @@ def validate_product_url(value):
 
 def fetch_product_page(product_url):
     """Fetch an allowed page and validate every redirect before following it."""
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; CheckFakeReviews/1.0)", "Accept": "text/html"}
     current_url = product_url
     for _ in range(6):
         current_url, error = validate_product_url(current_url)
         if error:
             return None, error
         try:
-            response = requests.get(current_url, headers=headers, timeout=(4, 12), allow_redirects=False)
+            response = HTTP.get(current_url, timeout=(4, 12), allow_redirects=False)
         except requests.RequestException:
             return None, "The product page could not be reached."
         if response.is_redirect:
@@ -181,6 +193,38 @@ def extract_reviews(html):
     return reviews[:MAX_REVIEWS]
 
 
+def heuristic_score(reviews):
+    """Fast, no-network scorer based on duplication and low-effort text patterns.
+    Used as the primary safety net when the AI call is unavailable or fails,
+    so the site's core feature never goes fully offline."""
+    total = len(reviews)
+    if total == 0:
+        return {"score": 50, "real": 0, "fake": 0, "verdict": "Mixed signals", "method": "heuristic"}
+
+    normalized = [re.sub(r"\s+", " ", r.strip().lower()) for r in reviews]
+    counts = {}
+    for text in normalized:
+        counts[text] = counts.get(text, 0) + 1
+    duplicate_reviews = sum(1 for text in normalized if counts[text] > 1)
+
+    lengths = [len(r) for r in reviews]
+    avg_len = sum(lengths) / total
+    short_reviews = sum(1 for l in lengths if l < 25)
+
+    fake_signal = 0.0
+    fake_signal += (duplicate_reviews / total) * 0.5
+    fake_signal += (short_reviews / total) * 0.3
+    if avg_len < 40:
+        fake_signal += 0.2
+    fake_signal = min(fake_signal, 1.0)
+
+    score = round((1 - fake_signal) * 100)
+    fake = round(fake_signal * total)
+    real = total - fake
+    verdict = "Likely authentic" if score >= 80 else "Mixed signals" if score >= 50 else "Likely suspicious"
+    return {"score": score, "real": real, "fake": fake, "verdict": verdict, "method": "heuristic"}
+
+
 def score_reviews_with_ai(reviews):
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
@@ -198,7 +242,7 @@ def score_reviews_with_ai(reviews):
         },
         "required": ["score", "real", "fake", "verdict"],
     }
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, timeout=20.0)
     response = client.responses.create(
         model=os.environ.get("OPENAI_MODEL", "gpt-5-mini"),
         store=False,
@@ -213,7 +257,32 @@ def score_reviews_with_ai(reviews):
     result = json.loads(response.output_text)
     if result["real"] + result["fake"] != total:
         raise RuntimeError("AI returned inconsistent review counts.")
+    result["method"] = "ai"
     return result
+
+
+def get_cached_scan(product_url):
+    url_hash = hashlib.sha256(product_url.encode()).hexdigest()
+    row = ScanResult.query.filter_by(url_hash=url_hash).first()
+    if not row:
+        return None
+    if datetime.now(timezone.utc) - row.created_at.replace(tzinfo=timezone.utc) > timedelta(minutes=SCAN_CACHE_MINUTES):
+        return None
+    return row
+
+
+def save_scan(product_url, total, result):
+    url_hash = hashlib.sha256(product_url.encode()).hexdigest()
+    row = ScanResult.query.filter_by(url_hash=url_hash).first() or ScanResult(url_hash=url_hash, url=product_url[:600])
+    row.total = total
+    row.real = result["real"]
+    row.fake = result["fake"]
+    row.score = result["score"]
+    row.verdict = result["verdict"]
+    row.method = result["method"]
+    row.created_at = datetime.now(timezone.utc)
+    db.session.add(row)
+    db.session.commit()
 
 
 @app.route("/")
@@ -230,19 +299,30 @@ def analyze():
     if error:
         return jsonify({"error": error}), 400
 
+    cached = get_cached_scan(product_url)
+    if cached:
+        return jsonify({
+            "total": cached.total, "score": cached.score, "real": cached.real,
+            "fake": cached.fake, "verdict": cached.verdict, "method": cached.method, "cached": True,
+        })
+
     page, error = fetch_product_page(product_url)
     if error:
         return jsonify({"error": error, "message": "No score was generated."}), 422
     reviews = extract_reviews(page)
     if not reviews:
         return jsonify({"error": "No public reviews could be retrieved from this product page.", "message": "No score was generated."}), 422
+
+    # Always compute the heuristic score first -- it's instant and becomes the
+    # answer if the AI call is unavailable or fails, so the feature never fully breaks.
+    result = heuristic_score(reviews)
     try:
         result = score_reviews_with_ai(reviews)
     except Exception:
-        app.logger.exception("Review analysis failed")
-        return jsonify({"error": "Analysis is temporarily unavailable. No score was generated."}), 503
+        app.logger.warning("AI analysis unavailable, using heuristic fallback", exc_info=True)
 
-    return jsonify({"total": len(reviews), **result})
+    save_scan(product_url, len(reviews), result)
+    return jsonify({"total": len(reviews), "cached": False, **result})
 
 
 @app.route("/store")
