@@ -1,97 +1,74 @@
-function analyze() {
-    // 1. Get Elements
+async function analyze() {
     const urlInput = document.getElementById('urlInput');
     const btn = document.getElementById('scanBtn');
     const loader = document.getElementById('btnLoader');
     const resultBox = document.getElementById('result');
-
-    // 2. Validation
     const url = urlInput.value.trim();
+
     if (!url) {
-        alert("Please paste a valid product URL first!");
+        alert("Please paste a product URL first.");
         return;
     }
 
-    // 3. UI: Set to "Loading" State
     btn.disabled = true;
     btn.innerText = "Scanning...";
-    loader.classList.remove('hidden'); // Show spinner
-    resultBox.classList.add('hidden'); // Hide old results
+    loader.classList.remove('hidden');
+    resultBox.classList.add('hidden');
 
-    console.log("Sending request to server...");
+    try {
+        const response = await fetch('/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
 
-    // 4. Send Data to Python Backend
-    // FIX: Changed to relative path so it works on Cloud (Render) AND Localhost
-    fetch('/analyze', { 
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ url: url })
-    })
-    .then(response => {
+        const data = await response.json();
+
+        // Invalid URL, unsupported website, no reviews, or AI failure:
+        // do not show a score.
         if (!response.ok) {
-            throw new Error("Server responded with an error!");
+            throw new Error(data.error || "Unable to analyse this URL.");
         }
-        return response.json();
-    })
-    .then(data => {
-        // 5. UI: Reset to "Active" State
-        btn.disabled = false;
-        btn.innerText = "Analyze";
-        loader.classList.add('hidden'); // Hide spinner
-        resultBox.classList.remove('hidden'); // Show results
 
-        // 6. Update the Text Data
         document.getElementById('totalReviews').innerText = data.total;
         document.getElementById('realCount').innerText = data.real;
         document.getElementById('fakeCount').innerText = data.fake;
-        
-        // Trust Score & Verdict
-        const scoreText = document.getElementById('trustScore');
-        scoreText.innerText = data.score;
-        
-        const badge = document.getElementById('verdictBadge');
-        badge.innerText = data.verdict;
 
-        // 7. Update Colors & Progress Bar based on Score
+        const scoreText = document.getElementById('trustScore');
+        const badge = document.getElementById('verdictBadge');
         const progressBar = document.getElementById('scoreBar');
-        
-        // Reset classes first
-        badge.className = 'verdict-badge'; 
-        
+
+        scoreText.innerText = data.score;
+        badge.innerText = data.verdict;
+        badge.className = 'verdict-badge';
+
         if (data.score >= 80) {
-            // SAFE (Green)
             badge.classList.add('badge-safe');
-            scoreText.style.color = '#059669'; 
+            scoreText.style.color = '#059669';
             progressBar.style.backgroundColor = '#059669';
         } else if (data.score >= 50) {
-            // CAUTION (Orange)
             badge.classList.add('badge-warn');
-            scoreText.style.color = '#d97706'; 
+            scoreText.style.color = '#d97706';
             progressBar.style.backgroundColor = '#d97706';
         } else {
-            // DANGER (Red)
             badge.classList.add('badge-risk');
-            scoreText.style.color = '#dc2626'; 
+            scoreText.style.color = '#dc2626';
             progressBar.style.backgroundColor = '#dc2626';
         }
 
-        // Animate the bar width (0% -> Score%)
-        progressBar.style.width = "0%";
+        resultBox.classList.remove('hidden');
+        progressBar.style.width = '0%';
         setTimeout(() => {
-            progressBar.style.width = data.score + "%";
+            progressBar.style.width = `${data.score}%`;
         }, 100);
 
-    })
-    .catch(error => {
-        console.error("Connection Error:", error);
-        
-        // Reset UI on Error
+    } catch (error) {
+        console.error("Analysis error:", error);
+        resultBox.classList.add('hidden');
+        alert(error.message);
+    } finally {
         btn.disabled = false;
         btn.innerText = "Analyze";
         loader.classList.add('hidden');
-        
-        alert("Could not connect to the server!\n\nIf you are seeing this on Render, wait 30 seconds and try again (the server might be waking up).");
-    });
+    }
 }
