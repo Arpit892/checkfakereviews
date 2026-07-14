@@ -14,7 +14,6 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for
 from flask_cors import CORS
 from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
-from openai import OpenAI
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -229,6 +228,11 @@ def score_reviews_with_ai(reviews):
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("AI analysis is not configured.")
+    try:
+        from openai import OpenAI  # imported lazily: if the package isn't installed,
+        # the whole app still boots fine and just falls back to heuristic_score().
+    except ImportError:
+        raise RuntimeError("openai package is not installed.")
 
     total = len(reviews)
     schema = {
