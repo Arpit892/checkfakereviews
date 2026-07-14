@@ -31,7 +31,6 @@
             min-height: 100vh;
         }
 
-        /* --- NAVBAR STYLING --- */
         nav {
             background: var(--primary);
             display: flex;
@@ -93,12 +92,32 @@
         .btn-login { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
         .btn-signup { background: white; color: var(--primary); text-decoration: none; font-weight: 700; padding: 8px 20px; border-radius: 50px; font-size: 0.85rem; }
 
-        /* --- CONTENT SECTIONS --- */
         .hero { background: var(--primary); color: white; text-align: center; padding: 60px 20px 120px 20px; position: relative; }
         .hero h1 { font-size: 3rem; font-weight: 700; margin-bottom: 20px; }
         .search-container { background: white; padding: 8px; border-radius: 12px; display: flex; width: 100%; max-width: 750px; margin: 0 auto; box-shadow: 0 20px 50px rgba(0,0,0,0.2); position: relative; z-index: 10; }
         input { flex: 1; border: none; outline: none; padding: 15px; font-size: 1rem; }
         #scanBtn { background: var(--accent); color: #000; border: none; padding: 0 35px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        #scanBtn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        #resultBox {
+            display: none;
+            background: white;
+            color: var(--text-dark);
+            max-width: 750px;
+            margin: 30px auto 0;
+            padding: 25px 30px;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            text-align: left;
+            position: relative;
+            z-index: 10;
+        }
+        #resultBox .result-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+        #resultBox .score-value { font-size: 2.4rem; font-weight: 800; color: var(--primary); white-space: nowrap; }
+        #resultBox .verdict-value { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
+        #resultBox .meta-value { color: #6b7280; font-size: 0.9rem; }
+        #resultBox .meta-value .real { color: #059669; font-weight: 600; }
+        #resultBox .meta-value .fake { color: #dc2626; font-weight: 600; }
 
         .wave-divider { position: absolute; bottom: 0; left: 0; width: 100%; overflow: hidden; line-height: 0; }
         .wave-divider svg { display: block; width: calc(130% + 1.3px); height: 60px; }
@@ -108,7 +127,6 @@
         .card { background: white; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: left; }
         .icon-box { width: 50px; height: 50px; background: rgba(0, 86, 210, 0.1); color: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 20px; font-weight: 800; }
 
-        /* --- FOOTER STYLING --- */
         footer { background: #111827; color: white; padding: 60px 5%; margin-top: auto; }
         .footer-content { 
             display: grid; 
@@ -177,6 +195,20 @@
         </div>
         <div id="btnLoader" style="display:none; margin-top:20px;">Processing AI Analysis...</div>
 
+        <div id="resultBox">
+            <div class="result-row">
+                <div class="score-value"><span id="scoreValue">--</span></div>
+                <div>
+                    <div class="verdict-value" id="verdictValue">--</div>
+                    <div class="meta-value">
+                        Based on <span id="totalValue">0</span> reviews —
+                        <span class="real"><span id="realValue">0</span> likely real</span>,
+                        <span class="fake"><span id="fakeValue">0</span> likely fake</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="wave-divider">
             <svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="#f9fafb"></path></svg>
         </div>
@@ -224,22 +256,50 @@
     </footer>
 
     <script>
-    function analyze() {
-        // reading score/verdict fields. This prevents stale or undefined scores.
-const response = await fetch('/analyze', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ url: urlInput.value.trim() })
-});
-const result = await response.json();
-if (!response.ok) {
-  resultBox.textContent = result.error || 'Unable to analyse this URL.';
-  return;
-}
+    async function analyze() {
+        const urlInput = document.getElementById('urlInput');
+        const scanBtn = document.getElementById('scanBtn');
+        const loader = document.getElementById('btnLoader');
+        const resultBox = document.getElementById('resultBox');
+        const url = urlInput.value.trim();
 
-// Only render score fields after a successful response.
-scoreElement.textContent = `${result.score}%`;
-verdictElement.textContent = result.verdict;
+        if (!url) {
+            alert('Please paste a product link first.');
+            return;
+        }
+
+        scanBtn.disabled = true;
+        scanBtn.innerText = 'Scanning...';
+        loader.style.display = 'block';
+        resultBox.style.display = 'none';
+
+        try {
+            const response = await fetch('/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                alert(result.error || 'Unable to analyse this URL.');
+                return;
+            }
+
+            document.getElementById('scoreValue').innerText = result.score + '%';
+            document.getElementById('verdictValue').innerText = result.verdict;
+            document.getElementById('totalValue').innerText = result.total;
+            document.getElementById('realValue').innerText = result.real;
+            document.getElementById('fakeValue').innerText = result.fake;
+            resultBox.style.display = 'block';
+        } catch (err) {
+            console.error(err);
+            alert('Something went wrong while analyzing this URL.');
+        } finally {
+            scanBtn.disabled = false;
+            scanBtn.innerText = 'Analyze';
+            loader.style.display = 'none';
+        }
     }
     </script>
 </body>
