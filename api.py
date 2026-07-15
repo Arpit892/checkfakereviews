@@ -39,9 +39,19 @@ login_manager.login_view = "login"
 
 # Reused HTTP session -> connection keep-alive instead of a fresh TCP/TLS handshake per request.
 HTTP = requests.Session()
-HTTP.headers.update({"User-Agent": "Mozilla/5.0 (compatible; CheckFakeReviews/1.0)"})
+HTTP.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-IN,en;q=0.9",
+})
 
 SCAN_CACHE_MINUTES = int(os.environ.get("SCAN_CACHE_MINUTES", "360"))  # 6 hours default
+
+# Optional rendering service for JS-heavy stores (Amazon, Myntra, Ajio, Meesho).
+# Sign up at a service like scraperapi.com and set RENDER_API_KEY in your host's
+# environment variables to enable this. Leave unset to skip it entirely.
+RENDER_API_KEY = os.environ.get("RENDER_API_KEY")
+RENDER_API_URL = "https://api.scraperapi.com"
 
 
 class User(UserMixin, db.Model):
@@ -158,6 +168,25 @@ def fetch_product_page(product_url):
             return None, "The URL does not point to a product web page."
         return response.text, None
     return None, "Too many redirects while opening the product page."
+
+
+def fetch_rendered_page(product_url):
+    """Fallback for JS-rendered stores (Amazon, Myntra, Ajio, Meesho): asks a
+    rendering service to load the page in a real browser and return the HTML.
+    Only called when the fast plain-HTTP fetch finds zero reviews. Returns
+    None (silently) if RENDER_API_KEY isn't configured or the call fails."""
+    if not RENDER_API_KEY:
+        return None
+    try:
+        resp = HTTP.get(
+            RENDER_API_URL,
+            params={"api_key": RENDER_API_KEY, "url": product_url, "render": "true"},
+            timeout=(5, 30),
+        )
+        resp.raise_for_status()
+        return resp.text
+    except requests.RequestException:
+        return None
 
 
 def _add_review_text(value, reviews):
@@ -314,6 +343,14 @@ def analyze():
     if error:
         return jsonify({"error": error, "message": "No score was generated."}), 422
     reviews = extract_reviews(page)
+
+    # Plain HTTP found nothing -- likely a JS-rendered store (Amazon/Myntra/Ajio/Meesho).
+    # Try a rendering service if one is configured, then re-extract.
+    if not reviews:
+        rendered_page = fetch_rendered_page(product_url)
+        if rendered_page:
+            reviews = extract_reviews(rendered_page)
+
     if not reviews:
         return jsonify({"error": "No public reviews could be retrieved from this product page.", "message": "No score was generated."}), 422
 
