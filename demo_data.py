@@ -1,18 +1,3 @@
-"""
-demo_data.py
-Precomputed Trust Score results from real Amazon.in products already
-analyzed locally (with live scraping + GPT-2 + full spam detection).
-
-Used by the hosted demo (checkfakereviews.online) instead of running
-Playwright + GPT-2 on the server, since Render's free tier (512MB RAM)
-can't reliably run that stack, and cloud-server IPs get blocked by
-Amazon's anti-bot systems even more aggressively than a home connection.
-
-The full live pipeline (scraper.py + ai_detector.py + spam_detector.py)
-still exists and runs locally — this file just lets the public website
-demonstrate real, honestly-labeled output without needing live compute.
-"""
-
 DEMO_PRODUCTS = {
     "B0GYCT961V": {
         "product_name": "Reducing Brightening Glowing Sandalwood Saffron Face Wash",
@@ -117,6 +102,59 @@ DEMO_PRODUCTS = {
                 "uniqueness_score": 0.9,
                 "ai_leftover_detected": False,
                 "review_score": 0.897,
+            },
+        ],
+    },
+    "itmfdkc4x6by3hte": {
+        "product_name": "Zebronics ZEB-K20/K65 Wired USB Keyboard (Flipkart)",
+        "trust_score": 80,
+        "label": "Likely Genuine",
+        "reviews_analyzed": 5,
+        "per_review": [
+            {
+                "reviewer_name": "Flipkart Customer",
+                "review_text_preview": "Nice product Nice, good",
+                "ai_human_likeness_score": 0.85,
+                "spam_genuineness_score": 0.892,
+                "uniqueness_score": 0.9,
+                "ai_leftover_detected": False,
+                "review_score": 0.873,
+            },
+            {
+                "reviewer_name": "Gajendra Padhan",
+                "review_text_preview": "Excellent Very good product",
+                "ai_human_likeness_score": 0.85,
+                "spam_genuineness_score": 0.656,
+                "uniqueness_score": 0.9,
+                "ai_leftover_detected": False,
+                "review_score": 0.743,
+            },
+            {
+                "reviewer_name": "Deepak Kumar Jena",
+                "review_text_preview": "Simply awesome It is excellent keyboard, quality is quite good al...more",
+                "ai_human_likeness_score": 0.79,
+                "spam_genuineness_score": 0.773,
+                "uniqueness_score": 0.9,
+                "ai_leftover_detected": False,
+                "review_score": 0.781,
+            },
+            {
+                "reviewer_name": "Flipkart Customer",
+                "review_text_preview": "Must buy! Very good product",
+                "ai_human_likeness_score": 0.7,
+                "spam_genuineness_score": 0.856,
+                "uniqueness_score": 0.9,
+                "ai_leftover_detected": False,
+                "review_score": 0.786,
+            },
+            {
+                "reviewer_name": "Gourab Bhowal",
+                "review_text_preview": "Great product Keyboard is just awesome . Loved it . But the Ctrl...more",
+                "ai_human_likeness_score": 0.7,
+                "spam_genuineness_score": 0.92,
+                "uniqueness_score": 0.9,
+                "ai_leftover_detected": False,
+                "review_score": 0.821,
             },
         ],
     },
