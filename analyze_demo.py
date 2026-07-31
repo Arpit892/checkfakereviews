@@ -1,21 +1,14 @@
-"""
-analyze_demo.py
-Lightweight version of analyze.py for the HOSTED demo (checkfakereviews.online).
-
-Deliberately does NOT import scraper.py or ai_detector.py, since those pull in
-Playwright and PyTorch/transformers — both too heavy for Render's free tier
-(512MB RAM) and unnecessary here, since we're serving precomputed results.
-
-The full live pipeline (scraper.py + ai_detector.py + spam_detector.py +
-trust_score.py) is untouched and still used by app.py for local runs.
-"""
-
 import re
 from demo_data import get_demo_result, list_demo_products
 
 
 def extract_asin(url: str):
-    match = re.search(r"/dp/([A-Z0-9]{10})", url) or re.search(r"/product/([A-Z0-9]{10})", url)
+    """Extracts a product identifier from either an Amazon or Flipkart URL."""
+    match = (
+        re.search(r"/dp/([A-Z0-9]{10})", url)
+        or re.search(r"/product/([A-Z0-9]{10})", url)
+        or re.search(r"/p/(itm[a-zA-Z0-9]+)", url)
+    )
     return match.group(1) if match else None
 
 
