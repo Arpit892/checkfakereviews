@@ -22,11 +22,11 @@
       --mixed: #ba7a16; 
       --fake: #c84635; 
     }
-
+ 
     * { 
       box-sizing: border-box; 
     }
-
+ 
     body { 
       margin: 0; 
       min-height: 100vh; 
@@ -34,12 +34,12 @@
       background: var(--cream); 
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; 
     }
-
+ 
     .wrap { 
       width: min(1120px, calc(100% - 48px)); 
       margin: auto; 
     }
-
+ 
     /* ==========================================
        Header / Masthead
        ========================================== */
@@ -49,13 +49,13 @@
       align-items: center; 
       justify-content: space-between; 
     }
-
+ 
     .brand { 
       font-size: 21px; 
       font-weight: 800; 
       letter-spacing: -.9px; 
     }
-
+ 
     .brand::before { 
       content: ""; 
       display: inline-block; 
@@ -65,13 +65,13 @@
       border-radius: 50%; 
       background: var(--orange); 
     }
-
+ 
     header.masthead h1 { 
       font: inherit; 
       display: inline; 
       margin: 0; 
     }
-
+ 
     header.masthead p { 
       margin: 0; 
       padding: 8px 12px; 
@@ -81,18 +81,18 @@
       font-size: 13px; 
       font-weight: 750; 
     }
-
+ 
     /* ==========================================
        Main Hero & Intake Form
        ========================================== */
     main { 
       padding: 42px 0 68px; 
     }
-
+ 
     .hero { 
       max-width: 760px; 
     }
-
+ 
     .eyebrow { 
       margin: 0 0 14px; 
       color: var(--green); 
@@ -101,14 +101,14 @@
       letter-spacing: 1.3px; 
       text-transform: uppercase; 
     }
-
+ 
     .hero h2 { 
       margin: 0; 
       font-size: clamp(44px, 7vw, 75px); 
       line-height: .98; 
       letter-spacing: -4px; 
     }
-
+ 
     .hero > p { 
       max-width: 620px; 
       margin: 24px 0 0; 
@@ -116,7 +116,7 @@
       font-size: 19px; 
       line-height: 1.55; 
     }
-
+ 
     .intake-card { 
       position: relative; 
       margin-top: 43px; 
@@ -126,7 +126,7 @@
       background: #fff; 
       box-shadow: 0 20px 45px rgba(38, 53, 52, .07); 
     }
-
+ 
     .intake-card label { 
       position: absolute; 
       width: 1px; 
@@ -135,12 +135,12 @@
       clip: rect(0 0 0 0); 
       white-space: nowrap; 
     }
-
+ 
     .input-row { 
       display: flex; 
       gap: 10px; 
     }
-
+ 
     .input-row input { 
       min-width: 0; 
       flex: 1; 
@@ -152,12 +152,12 @@
       font: inherit; 
       font-size: 16px; 
     }
-
+ 
     .input-row input:focus { 
       outline: 3px solid #cdeee2; 
       border-color: var(--green); 
     }
-
+ 
     button.submit-btn { 
       min-height: 54px; 
       padding: 0 22px; 
@@ -169,31 +169,31 @@
       font: 700 15px inherit; 
       transition: transform .15s ease, opacity .15s ease; 
     }
-
+ 
     button.submit-btn:hover:not(:disabled) { 
       transform: translateY(-1px); 
       opacity: .91; 
     }
-
+ 
     button.submit-btn:disabled { 
       cursor: not-allowed; 
       opacity: .58; 
     }
-
+ 
     .hint { 
       margin: 13px 2px 0; 
       color: var(--muted); 
       font-size: 13px; 
       line-height: 1.45; 
     }
-
+ 
     .hint a.demo-link { 
       color: var(--ink); 
       font-weight: 700; 
       text-decoration-thickness: 1px; 
       text-underline-offset: 2px; 
     }
-
+ 
     /* Status & Spinner */
     #status { 
       display: none; 
@@ -202,11 +202,11 @@
       font-size: 14px; 
       font-weight: 650; 
     }
-
+ 
     #status.visible { 
       display: block; 
     }
-
+ 
     .spinner { 
       display: inline-block; 
       width: 13px; 
@@ -218,11 +218,11 @@
       vertical-align: -2px; 
       animation: spin .8s linear infinite; 
     }
-
+ 
     @keyframes spin { 
       to { transform: rotate(360deg); } 
     }
-
+ 
     #error-box { 
       display: none; 
       margin-top: 18px; 
@@ -233,7 +233,7 @@
       background: #fff1ef; 
       font-size: 14px; 
     }
-
+ 
     /* ==========================================
        Report Card & Exhibits
        ========================================== */
@@ -246,31 +246,36 @@
       padding: 28px 0 0; 
       border-top: 1px solid var(--line); 
     }
-
+ 
     .report-card.visible { 
       display: grid; 
       animation: slideIn .35s ease; 
     }
-
+ 
     @keyframes slideIn { 
       from { opacity: 0; transform: translateY(8px); } 
       to { opacity: 1; transform: translateY(0); } 
     }
-
+ 
+    /* FIX: .stamp now uses a normal flex column with padding-top that
+       clears the ::before label, instead of absolutely positioning the
+       score-block with a margin hack. This is what was causing the score/
+       verdict text to overlap the (now removed) bottom caption. */
     .stamp { 
       position: relative; 
       width: 100%; 
       min-height: 220px; 
-      padding: 25px; 
+      padding: 60px 25px 25px; 
       border-radius: 18px; 
       color: var(--green); 
       background: var(--mint); 
       display: flex; 
-      align-items: flex-end; 
+      flex-direction: column; 
+      justify-content: flex-end; 
       font-size: 18px; 
       font-weight: 800; 
     }
-
+ 
     .stamp::before { 
       content: "Review trust score"; 
       position: absolute; 
@@ -282,31 +287,26 @@
       letter-spacing: 1px; 
       text-transform: uppercase; 
     }
-
-    .stamp::after { 
-      content: "Based on the 5 most recent reviews"; 
-      position: absolute; 
-      bottom: 25px; 
-      left: 25px; 
-      color: #477163; 
-      font-size: 13px; 
-      font-weight: 500; 
-    }
-
+ 
+    /* REMOVED: .stamp::after — this duplicated "Based on the 5 most recent
+       reviews" text that the JS already includes in .verdict, and its fixed
+       bottom:25px position was what collided with the score/verdict block. */
+ 
     .stamp.genuine { color: var(--genuine); background: var(--mint); }
     .stamp.mixed { color: var(--mixed); background: #fff2d7; }
     .stamp.fake { color: var(--fake); background: #ffebe8; }
-
+ 
+    /* FIX: score-block now flows naturally inside the stamp's flex column
+       instead of using position:absolute with an unanchored margin offset. */
     .score-block { 
-      position: absolute; 
-      margin: 59px 0 0 25px; 
-      z-index: 1; 
+      position: static; 
+      margin: 0; 
     }
-
+ 
     .score-block .label { 
       display: none; 
     }
-
+ 
     .score-block .score { 
       margin: 0 0 7px; 
       color: var(--green); 
@@ -315,25 +315,26 @@
       line-height: .9; 
       letter-spacing: -5px; 
     }
-
+ 
     .score-block .verdict { 
-      font-size: 18px; 
-      font-weight: 800; 
+      font-size: 16px; 
+      font-weight: 700; 
+      line-height: 1.4; 
     }
-
+ 
     .report-card > .disclaimer, 
     .exhibit-log-title, 
     #exhibit-list { 
       grid-column: 2; 
     }
-
+ 
     .disclaimer { 
       margin: 0; 
       color: var(--muted); 
       font-size: 14px; 
       line-height: 1.55; 
     }
-
+ 
     .exhibit-log-title { 
       margin: 14px 0 -2px; 
       color: var(--ink); 
@@ -341,44 +342,44 @@
       font-weight: 800; 
       letter-spacing: -1.2px; 
     }
-
+ 
     #exhibit-list { 
       display: grid; 
       grid-template-columns: repeat(2, minmax(0, 1fr)); 
       gap: 10px; 
     }
-
+ 
     .exhibit { 
       padding: 14px; 
       border: 1px solid var(--line); 
       border-radius: 12px; 
     }
-
+ 
     .exhibit-header { 
       display: flex; 
       align-items: baseline; 
       justify-content: space-between; 
       gap: 12px; 
     }
-
+ 
     .exhibit-tag { 
       color: var(--muted); 
       font-size: 11px; 
       font-weight: 800; 
       letter-spacing: .8px; 
     }
-
+ 
     .exhibit-score { 
       font-size: 14px; 
       font-weight: 800; 
     }
-
+ 
     .exhibit-name { 
       margin-top: 6px; 
       font-size: 15px; 
       font-weight: 800; 
     }
-
+ 
     .exhibit-quote { 
       margin: 7px 0 10px; 
       color: var(--muted); 
@@ -386,26 +387,26 @@
       font-style: italic; 
       line-height: 1.45; 
     }
-
+ 
     .bar-track { 
       height: 6px; 
       overflow: hidden; 
       border-radius: 99px; 
       background: #edf1f1; 
     }
-
+ 
     .bar-fill { 
       height: 100%; 
       border-radius: inherit; 
     }
-
+ 
     .flags { 
       display: flex; 
       flex-wrap: wrap; 
       gap: 6px; 
       margin-top: 10px; 
     }
-
+ 
     .flag-chip { 
       padding: 4px 7px; 
       border-radius: 999px; 
@@ -415,7 +416,7 @@
       font-weight: 750; 
       letter-spacing: .1px; 
     }
-
+ 
     /* ==========================================
        How It Works Section
        ========================================== */
@@ -426,25 +427,25 @@
       align-items: start; 
       margin-top: 74px; 
     }
-
+ 
     .how h2 { 
       margin: 6px 0 0; 
       font-size: 35px; 
       letter-spacing: -2px; 
       line-height: 1.04; 
     }
-
+ 
     .how p { 
       color: var(--muted); 
       line-height: 1.55; 
     }
-
+ 
     .steps { 
       display: grid; 
       grid-template-columns: repeat(3, 1fr); 
       gap: 13px; 
     }
-
+ 
     .step { 
       min-height: 150px; 
       padding: 18px; 
@@ -452,23 +453,23 @@
       border-radius: 15px; 
       background: #fff; 
     }
-
+ 
     .num { 
       color: var(--orange); 
       font-size: 13px; 
       font-weight: 800; 
     }
-
+ 
     .step h3 { 
       margin: 18px 0 5px; 
       font-size: 16px; 
     }
-
+ 
     .step p { 
       margin: 0; 
       font-size: 13px; 
     }
-
+ 
     /* ==========================================
        Footer & Responsiveness
        ========================================== */
@@ -479,7 +480,7 @@
       font-size: 13px; 
       text-align: center; 
     }
-
+ 
     @media (max-width: 700px) {
       .wrap { width: min(100% - 32px, 1120px); }
       header.masthead { height: 66px; }
@@ -494,7 +495,7 @@
     }
   </style>
 </head>
-
+ 
 <body>
   <div class="wrap">
     
@@ -504,14 +505,14 @@
       </div>
       <p>Independent review signals</p>
     </header>
-
+ 
     <main>
       <section class="hero">
         <div class="eyebrow">Better decisions, fewer surprises</div>
         <h2>See past the stars.</h2>
         <p>Check the newest product reviews for signs of AI-generated or coordinated spam — before you buy.</p>
       </section>
-
+ 
       <div class="intake-card">
         <label for="url-input">Product URL (Amazon.in or Flipkart.com)</label>
         
@@ -519,7 +520,7 @@
           <input type="text" id="url-input" placeholder="Paste an Amazon or Flipkart product link" />
           <button class="submit-btn" id="submit-btn">Check reviews</button>
         </div>
-
+ 
         <p class="hint">Paste a full Amazon.in or Flipkart.com product page link. Analysis covers the 5 most recent reviews.</p>
         
         <p class="hint" style="margin-top:6px;">
@@ -528,7 +529,7 @@
           <a href="#" class="demo-link" data-url="https://www.amazon.in/dp/B09S6M7JQJ/">Sandalwood Saffron Soap (Amazon)</a> &middot; 
           <a href="#" class="demo-link" data-url="https://www.flipkart.com/zebronics-zeb-k20-zeb-k65-wired-usb-standard-desktop-keyboard/p/itmfdkc4x6by3hte">Zebronics Keyboard (Flipkart)</a>
         </p>
-
+ 
         <div id="status">
           <span class="spinner"></span>
           <span id="status-text">Reviewing product...</span>
@@ -536,7 +537,7 @@
         
         <div id="error-box"></div>
       </div>
-
+ 
       <div class="report-card" id="report-card">
         <div class="stamp" id="stamp"></div>
         <div class="score-block">
@@ -548,7 +549,7 @@
         <div class="exhibit-log-title">Reviews examined</div>
         <div id="exhibit-list"></div>
       </div>
-
+ 
       <section class="how">
         <div>
           <div class="eyebrow">Simple by design</div>
@@ -575,10 +576,10 @@
         </div>
       </section>
     </main>
-
+ 
     <footer>CheckFakeReviews &middot; Independent review signals</footer>
   </div>
-
+ 
   <script>
     // DOM Elements
     const submitBtn = document.getElementById('submit-btn');
@@ -591,26 +592,26 @@
     const scoreValue = document.getElementById('score-value');
     const verdictText = document.getElementById('verdict-text');
     const exhibitList = document.getElementById('exhibit-list');
-
+ 
     // Helper Functions
     function verdictClass(label) { 
       if (label.includes('Genuine')) return 'genuine'; 
       if (label.includes('Mixed')) return 'mixed'; 
       return 'fake'; 
     }
-
+ 
     function verdictStampWord(label) { 
       if (label.includes('Genuine')) return 'GENUINE'; 
       if (label.includes('Mixed')) return 'MIXED\nSIGNALS'; 
       return 'SUSPECT'; 
     }
-
+ 
     function barColor(score) { 
       if (score >= 0.7) return 'var(--genuine)'; 
       if (score >= 0.4) return 'var(--mixed)'; 
       return 'var(--fake)'; 
     }
-
+ 
     // Core Request Handler
     async function runCheck() {
       const url = urlInput.value.trim();
@@ -620,36 +621,36 @@
         errorBox.style.display = 'block'; 
         return; 
       }
-
+ 
       // Reset State
       errorBox.style.display = 'none'; 
       reportCard.classList.remove('visible'); 
       submitBtn.disabled = true; 
       statusBox.classList.add('visible'); 
       statusText.textContent = 'Scraping recent reviews...';
-
+ 
       try { 
         const stageTimer = setTimeout(() => { 
           statusText.textContent = 'Running authenticity analysis (first run downloads a model, may take a minute)...'; 
         }, 2500);
-
+ 
         const res = await fetch('/api/check', { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
           body: JSON.stringify({ url }) 
         }); 
-
+ 
         clearTimeout(stageTimer); 
         const data = await res.json();
-
+ 
         if (data.error) { 
           errorBox.textContent = data.error; 
           errorBox.style.display = 'block'; 
           return; 
         } 
-
+ 
         renderReport(data);
-
+ 
       } catch (err) { 
         errorBox.textContent = 'Something went wrong reaching the server: ' + err.message; 
         errorBox.style.display = 'block'; 
@@ -658,25 +659,25 @@
         statusBox.classList.remove('visible'); 
       }
     }
-
+ 
     // Report Display Logic
     function renderReport(data) {
       const vClass = verdictClass(data.label); 
       stamp.className = 'stamp ' + vClass; 
       stamp.style.whiteSpace = 'pre-line'; 
       stamp.textContent = verdictStampWord(data.label);
-
+ 
       scoreValue.textContent = data.trust_score + '/100'; 
       scoreValue.style.color = 'var(--' + vClass + ')'; 
       verdictText.textContent = data.label + ' — based on ' + data.reviews_analyzed + ' recent reviews'; 
       
       exhibitList.innerHTML = '';
-
+ 
       data.per_review.forEach((r, i) => { 
         const letter = String.fromCharCode(65 + i); 
         const div = document.createElement('div'); 
         div.className = 'exhibit'; 
-
+ 
         let flagsHtml = ''; 
         if (r.ai_leftover_detected) {
           flagsHtml += '<span class="flag-chip">AI text leftover detected</span>'; 
@@ -684,7 +685,7 @@
         if (r.uniqueness_score < 0.3) {
           flagsHtml += '<span class="flag-chip">Duplicate content</span>'; 
         }
-
+ 
         div.innerHTML = `
           <div class="exhibit-header">
             <span class="exhibit-tag">REVIEW ${letter}</span>
@@ -699,17 +700,17 @@
         `; 
         exhibitList.appendChild(div); 
       }); 
-
+ 
       reportCard.classList.add('visible');
     }
-
+ 
     // Event Listeners
     submitBtn.addEventListener('click', runCheck); 
-
+ 
     urlInput.addEventListener('keydown', (e) => { 
       if (e.key === 'Enter') runCheck(); 
     });
-
+ 
     document.querySelectorAll('.demo-link').forEach(link => { 
       link.addEventListener('click', (e) => { 
         e.preventDefault(); 
@@ -720,3 +721,4 @@
   </script>
 </body>
 </html>
+ 
