@@ -257,10 +257,7 @@
       to { opacity: 1; transform: translateY(0); } 
     }
  
-    /* FIX: .stamp now uses a normal flex column with padding-top that
-       clears the ::before label, instead of absolutely positioning the
-       score-block with a margin hack. This is what was causing the score/
-       verdict text to overlap the (now removed) bottom caption. */
+    
     .stamp { 
       position: relative; 
       width: 100%; 
@@ -288,16 +285,13 @@
       text-transform: uppercase; 
     }
  
-    /* REMOVED: .stamp::after — this duplicated "Based on the 5 most recent
-       reviews" text that the JS already includes in .verdict, and its fixed
-       bottom:25px position was what collided with the score/verdict block. */
+
  
     .stamp.genuine { color: var(--genuine); background: var(--mint); }
     .stamp.mixed { color: var(--mixed); background: #fff2d7; }
     .stamp.fake { color: var(--fake); background: #ffebe8; }
  
-    /* FIX: score-block now flows naturally inside the stamp's flex column
-       instead of using position:absolute with an unanchored margin offset. */
+  
     .score-block { 
       position: static; 
       margin: 0; 
