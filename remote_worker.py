@@ -36,8 +36,8 @@ import requests
 from analyze_live import analyze_reviews
 from scraper import ScrapeError, scrape_product
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000").rstrip("/")
-WORKER_TOKEN = os.environ.get("WORKER_TOKEN", "").strip()
+BACKEND_URL = os.environ.get("BACKEND_URL", "https://checkfakereviews.online").rstrip("/")
+WORKER_TOKEN = "secret123"
 POLL_INTERVAL = float(os.environ.get("POLL_INTERVAL", "5"))
 MIN_GAP_SECONDS = float(os.environ.get("MIN_GAP_SECONDS", "8"))
 MAX_REVIEWS = int(os.environ.get("MAX_REVIEWS", "5"))
