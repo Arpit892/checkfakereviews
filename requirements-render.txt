@@ -1,3 +1,15 @@
-fastapi
-uvicorn
-pydantic
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.5
+requests>=2.31
+beautifulsoup4>=4.12
+
+# Optional: Postgres-backed cache (Neon / Supabase / Railway).
+# Uncomment both lines when you set DATABASE_URL.
+# psycopg[binary]>=3.1
+# psycopg-pool>=3.2
+
+# Deliberately NOT included: torch, transformers, selenium, playwright.
+# Any of them will blow past Render's 512MB free tier and the worker will be
+# OOM-killed mid-request (shows up as a random 502). Add them only on an
+# instance with >=2GB RAM, then set USE_GPT2=1.
