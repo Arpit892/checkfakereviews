@@ -3,6 +3,7 @@ uvicorn[standard]>=0.27
 pydantic>=2.5
 requests>=2.31
 beautifulsoup4>=4.12
+gunicorn>=21.2.0
 
 # Optional: Postgres-backed cache (Neon / Supabase / Railway).
 # Uncomment both lines when you set DATABASE_URL.
