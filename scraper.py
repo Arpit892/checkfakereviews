@@ -1,27 +1,6 @@
 """
 scraper.py
 Live product + review scraping for Amazon.in and Flipkart.
-
-Design notes (read these before debugging):
-
-1. This uses plain HTTP (requests) and NOT a headless browser. Chromium under
-   Playwright/Selenium will OOM on Render's 512MB free tier. Both Amazon and
-   Flipkart still server-render enough review HTML for a first pass.
-
-2. Amazon and Flipkart block datacenter IPs far more aggressively than home
-   connections. This is the #1 reason a scraper works on your laptop and
-   returns nothing on Render. If PROXY_URL or SCRAPERAPI_KEY is set in the
-   environment, requests are routed through it. Without a proxy, expect
-   intermittent BLOCKED results from cloud hosts.
-
-3. When scraping fails we raise ScrapeError with a MACHINE-READABLE reason
-   instead of silently returning zero reviews. The API layer surfaces that
-   reason so you can tell "blocked" apart from "layout changed".
-
-Environment variables:
-    PROXY_URL        e.g. http://user:pass@gate.smartproxy.com:7000
-    SCRAPERAPI_KEY   if set, requests go through api.scraperapi.com
-    SCRAPE_TIMEOUT   per-request timeout in seconds (default 20)
 """
 
 import os
@@ -29,7 +8,7 @@ import random
 import re
 import time
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from urllib.parse import quote_plus
 
 import requests
@@ -62,7 +41,7 @@ class ScrapeError(Exception):
 
     def __init__(self, reason: str, message: str, status: Optional[int] = None):
         super().__init__(message)
-        self.reason = reason          # BLOCKED | HTTP_ERROR | NETWORK | NO_REVIEWS | UNSUPPORTED_SITE
+        self.reason = reason  # BLOCKED | HTTP_ERROR | NETWORK | NO_REVIEWS | UNSUPPORTED_SITE
         self.message = message
         self.status = status
 
@@ -86,6 +65,17 @@ class ProductPage:
 
 
 # --------------------------------------------------------------------------
+# Helper utilities
+# --------------------------------------------------------------------------
+
+def _clean(text: Optional[str]) -> str:
+    """Normalize whitespace and strip text."""
+    if not text:
+        return ""
+    return re.sub(r"\s+", " ", text).strip()
+
+
+# --------------------------------------------------------------------------
 # URL handling
 # --------------------------------------------------------------------------
 
@@ -101,7 +91,7 @@ def detect_site(url: str) -> str:
 def extract_product_id(url: str) -> Optional[str]:
     """
     Amazon: /dp/ASIN, /gp/product/ASIN, /product-reviews/ASIN
-    Flipkart: ?pid=ITM... (authoritative) or /p/itm...
+    Flipkart: ?pid=ITM... or /p/itm...
     """
     site = detect_site(url)
 
@@ -115,8 +105,6 @@ def extract_product_id(url: str) -> Optional[str]:
         return m.group(1).upper() if m else None
 
     if site == "flipkart":
-        # Prefer the itm... id: it's what demo_data.py is keyed on, so the
-        # fallback path keeps working. pid= is the variant-level backup.
         m = re.search(r"/p/(itm[A-Za-z0-9]+)", url)
         if m:
             return m.group(1)
@@ -207,62 +195,87 @@ def fetch_html(url: str, retries: int = 2) -> str:
                 continue
             raise last_err
 
-    raise last_err  # pragma: no cover
+    raise last_err
 
 
 # --------------------------------------------------------------------------
 # Amazon parsing
 # --------------------------------------------------------------------------
 
-from bs4 import BeautifulSoup
-
-def parse_amazon_reviews(html: str):
+def parse_amazon(html: str) -> Tuple[str, List[Review]]:
     soup = BeautifulSoup(html, "html.parser")
-    reviews = []
 
-    # Amazon's standard review container
+    # Extract Product Name
+    product_name = ""
+    for sel in ("#productTitle", "h1#title", "h1", "a[data-hook='product-link']"):
+        el = soup.select_one(sel)
+        if el and _clean(el.get_text()):
+            product_name = _clean(el.get_text())
+            break
+    if not product_name:
+        og = soup.find("meta", property="og:title")
+        product_name = _clean(og["content"]) if og and og.get("content") else "Amazon Product"
+
+    reviews: List[Review] = []
+
+    # Amazon review containers
     review_elements = soup.find_all("div", {"data-hook": "review"})
-
-    # Fallback to general review cards if data-hook isn't present
     if not review_elements:
-        review_elements = soup.select(".review, #cm-cr-dp-review-list .a-section")
+        review_elements = soup.select(".review, #cm-cr-dp-review-list .a-section, div[id^='customer_review-']")
 
-    for el in review_elements[:5]:  # Take the first 5 reviews
-        # 1. Review Text
+    for el in review_elements:
+        # Review text
         body_el = el.find("span", {"data-hook": "review-body"}) or el.select_one(".review-text-content, .review-text")
-        text = body_el.get_text(strip=True) if body_el else ""
+        text = _clean(body_el.get_text()) if body_el else ""
+        text = re.sub(r"\s*(Read more)\s*$", "", text, flags=re.I)
+        if not text or len(text) < 4:
+            continue
 
-        # 2. Review Title
-        title_el = el.find("a", {"data-hook": "review-title"}) or el.find("span", {"data-hook": "review-title"})
-        title = title_el.get_text(strip=True) if title_el else ""
-
-        # 3. Rating
-        rating_el = el.find("i", {"data-hook": "review-star-rating"}) or el.select_one(".a-icon-alt")
-        rating = rating_el.get_text(strip=True) if rating_el else ""
-
-        # 4. Reviewer Name
+        # Reviewer name
         author_el = el.find("span", class_="a-profile-name")
-        author = author_el.get_text(strip=True) if author_el else "Amazon Customer"
+        reviewer_name = _clean(author_el.get_text()) if author_el else "Amazon Customer"
 
-        if text:
-            reviews.append({
-                "title": title,
-                "text": text,
-                "rating": rating,
-                "author": author
-            })
+        # Rating
+        rating = None
+        rating_el = el.find("i", {"data-hook": "review-star-rating"}) or el.find("i", {"data-hook": "cmps-review-star-rating"}) or el.select_one(".a-icon-alt")
+        if rating_el:
+            rm = re.search(r"([1-5](?:\.[0-9])?)", rating_el.get_text())
+            if rm:
+                rating = float(rm.group(1))
 
-    return reviews
+        # Verified purchase
+        verified = bool(el.find("span", {"data-hook": "avp-badge"}) or "Verified Purchase" in el.get_text())
+
+        reviews.append(
+            Review(
+                reviewer_name=reviewer_name,
+                text=text,
+                rating=rating,
+                verified=verified,
+            )
+        )
+
+    # Deduplicate on text
+    seen, deduped = set(), []
+    for r in reviews:
+        key = r.text.lower()[:120]
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(r)
+
+    return product_name, deduped
+
+
+# Alias for backward compatibility
+parse_amazon_reviews = parse_amazon
+
+
 # --------------------------------------------------------------------------
 # Flipkart parsing
 # --------------------------------------------------------------------------
 
-def parse_flipkart(html: str) -> tuple:
-    """
-    Flipkart's CSS class names are obfuscated and rotate every few weeks, so
-    selector-only parsing rots fast. Strategy: try known selectors first, then
-    fall back to a structural heuristic (blocks containing a star-rating badge).
-    """
+def parse_flipkart(html: str) -> Tuple[str, List[Review]]:
     soup = BeautifulSoup(html, "html.parser")
 
     product_name = ""
@@ -275,9 +288,8 @@ def parse_flipkart(html: str) -> tuple:
         og = soup.find("meta", property="og:title")
         product_name = _clean(og["content"]) if og and og.get("content") else "Unknown product"
 
-    reviews = []
+    reviews: List[Review] = []
 
-    # Known text containers, newest first.
     for sel in ("div.ZmyHeo div div", "div.ZmyHeo", "div.t-ZTKy div div", "div.t-ZTKy", "div.qwjRop div"):
         nodes = soup.select(sel)
         if len(nodes) >= 2:
@@ -314,7 +326,6 @@ def parse_flipkart(html: str) -> tuple:
             if reviews:
                 break
 
-    # Structural fallback: any div whose text mentions Certified Buyer.
     if not reviews:
         for div in soup.find_all("div"):
             blob = _clean(div.get_text(" "))
@@ -329,7 +340,6 @@ def parse_flipkart(html: str) -> tuple:
             if len(reviews) >= 10:
                 break
 
-    # Deduplicate on text, preserving order.
     seen, deduped = set(), []
     for r in reviews:
         key = r.text.lower()[:120]
@@ -361,7 +371,6 @@ def scrape_product(url: str, max_reviews: int = 5) -> ProductPage:
         )
 
     if site == "amazon":
-        # The dedicated reviews page carries far more review HTML than the PDP.
         domain = re.search(r"https?://([^/]+)", url)
         host = domain.group(1) if domain else "www.amazon.in"
         review_url = f"https://{host}/product-reviews/{product_id}/?sortBy=recent&pageNumber=1"
@@ -390,4 +399,3 @@ def scrape_product(url: str, max_reviews: int = 5) -> ProductPage:
         reviews=reviews[:max_reviews],
         source_url=source,
     )
-   parse_amazon = parse_amazon_reviews
