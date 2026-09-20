@@ -279,12 +279,13 @@ def parse_amazon(html: str) -> tuple:
     reviews = []
     for b in blocks:
         body_el = (
-            b.select_one('span[data-hook="review-body"] span')
+            b.select_one('div[data-hook="reviewRichContentContainer"]')  # current layout (2026)
+            or b.select_one('span[data-hook="review-body"] span')        # older layout
             or b.select_one('span[data-hook="review-body"]')
             or b.select_one(".review-text-content span")
             or b.select_one(".review-text-content")
         )
-        text = _clean(body_el.get_text()) if body_el else ""
+        text = _clean(body_el.get_text(" ")) if body_el else ""
         if not text:
             continue
 
@@ -464,7 +465,7 @@ def scrape_product(url: str, max_reviews: int = 5) -> ProductPage:
         )
         if dump_path:
             msg += f" Raw page saved to {dump_path} for inspection."
-        raise ScrapeError("NO_REVIEWS", msg)._with_html(html)
+        raise ScrapeError("NO_REVIEWS", msg)
 
     return ProductPage(
         site=site,
