@@ -214,59 +214,45 @@ def fetch_html(url: str, retries: int = 2) -> str:
 # Amazon parsing
 # --------------------------------------------------------------------------
 
-def _clean(s: str) -> str:
-    return re.sub(r"\s+", " ", (s or "")).strip()
+from bs4 import BeautifulSoup
 
-
-def parse_amazon(html: str) -> tuple:
+def parse_amazon_reviews(html: str):
     soup = BeautifulSoup(html, "html.parser")
-
-    title_el = soup.select_one("#productTitle") or soup.select_one("span#productTitle")
-    product_name = _clean(title_el.get_text()) if title_el else ""
-    if not product_name:
-        og = soup.find("meta", property="og:title")
-        product_name = _clean(og["content"]) if og and og.get("content") else "Unknown product"
-
-    blocks = soup.select('div[data-hook="review"]') or soup.select("div.review")
     reviews = []
-    for b in blocks:
-        body_el = (
-            b.select_one('span[data-hook="review-body"] span')
-            or b.select_one('span[data-hook="review-body"]')
-            or b.select_one(".review-text-content span")
-        )
-        text = _clean(body_el.get_text()) if body_el else ""
-        if not text:
-            continue
 
-        name_el = b.select_one("span.a-profile-name")
-        name = _clean(name_el.get_text()) if name_el else "Amazon Customer"
+    # Amazon's standard review container
+    review_elements = soup.find_all("div", {"data-hook": "review"})
 
-        rating = None
-        r_el = b.select_one('i[data-hook="review-star-rating"] span') or b.select_one(
-            'i[data-hook="cmps-review-star-rating"] span'
-        )
-        if r_el:
-            m = re.search(r"([\d.]+)", r_el.get_text())
-            if m:
-                rating = float(m.group(1))
+    # Fallback to general review cards if data-hook isn't present
+    if not review_elements:
+        review_elements = soup.select(".review, #cm-cr-dp-review-list .a-section")
 
-        verified = b.select_one('span[data-hook="avp-badge"]') is not None
+    for el in review_elements[:5]:  # Take the first 5 reviews
+        # 1. Review Text
+        body_el = el.find("span", {"data-hook": "review-body"}) or el.select_one(".review-text-content, .review-text")
+        text = body_el.get_text(strip=True) if body_el else ""
 
-        date_el = b.select_one('span[data-hook="review-date"]')
-        reviews.append(
-            Review(
-                reviewer_name=name,
-                text=text,
-                rating=rating,
-                verified=verified,
-                meta={"date": _clean(date_el.get_text()) if date_el else ""},
-            )
-        )
+        # 2. Review Title
+        title_el = el.find("a", {"data-hook": "review-title"}) or el.find("span", {"data-hook": "review-title"})
+        title = title_el.get_text(strip=True) if title_el else ""
 
-    return product_name, reviews
+        # 3. Rating
+        rating_el = el.find("i", {"data-hook": "review-star-rating"}) or el.select_one(".a-icon-alt")
+        rating = rating_el.get_text(strip=True) if rating_el else ""
 
+        # 4. Reviewer Name
+        author_el = el.find("span", class_="a-profile-name")
+        author = author_el.get_text(strip=True) if author_el else "Amazon Customer"
 
+        if text:
+            reviews.append({
+                "title": title,
+                "text": text,
+                "rating": rating,
+                "author": author
+            })
+
+    return reviews
 # --------------------------------------------------------------------------
 # Flipkart parsing
 # --------------------------------------------------------------------------
