@@ -390,3 +390,4 @@ def scrape_product(url: str, max_reviews: int = 5) -> ProductPage:
         reviews=reviews[:max_reviews],
         source_url=source,
     )
+   parse_amazon = parse_amazon_reviews
