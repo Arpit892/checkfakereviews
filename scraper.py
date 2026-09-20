@@ -200,10 +200,12 @@ def fetch_html(url: str, retries: int = 2) -> str:
                 )
 
             if resp.status_code in (403, 429, 503):
+                dump = _dump_debug_html(resp.text, f"blocked_http{resp.status_code}")
                 raise ScrapeError(
                     "BLOCKED",
                     f"Store returned HTTP {resp.status_code} — the request was refused, "
-                    "almost certainly bot detection on this server's IP.",
+                    "almost certainly bot detection on this server's IP."
+                    + (f" Raw response saved to {dump}." if dump else ""),
                     resp.status_code,
                 )
             if resp.status_code >= 400:
@@ -214,14 +216,20 @@ def fetch_html(url: str, retries: int = 2) -> str:
             html = resp.text
             low = html[:20000].lower()
             if any(m in low for m in BLOCK_MARKERS):
+                dump = _dump_debug_html(html, "blocked_captcha")
                 raise ScrapeError(
                     "BLOCKED",
-                    "Served a CAPTCHA / bot-check page instead of the product page.",
+                    "Served a CAPTCHA / bot-check page instead of the product page."
+                    + (f" Raw response saved to {dump}." if dump else ""),
                     resp.status_code,
                 )
             if len(html) < 2000:
+                dump = _dump_debug_html(html, "blocked_tiny")
                 raise ScrapeError(
-                    "BLOCKED", "Response was suspiciously small — likely an interstitial.", resp.status_code
+                    "BLOCKED",
+                    "Response was suspiciously small — likely an interstitial."
+                    + (f" Raw response saved to {dump}." if dump else ""),
+                    resp.status_code,
                 )
             return html
 
