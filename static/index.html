@@ -233,6 +233,20 @@
       background: #fff1ef; 
       font-size: 14px; 
     }
+
+    /* Notice: soft, non-error informational line (e.g. "showing a cached/demo
+       result because the live scrape was blocked"). Reuses .hint styling. */
+    #notice-box {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 13px;
+      border: 1px solid #e7dcb8;
+      border-radius: 11px;
+      color: #7a5f14;
+      background: #fdf7e6;
+      font-size: 13px;
+      line-height: 1.45;
+    }
  
     /* ==========================================
        Report Card & Exhibits
@@ -528,6 +542,8 @@
           <span class="spinner"></span>
           <span id="status-text">Reviewing product...</span>
         </div>
+
+        <div id="notice-box"></div>
         
         <div id="error-box"></div>
       </div>
@@ -581,11 +597,17 @@
     const statusBox = document.getElementById('status');
     const statusText = document.getElementById('status-text');
     const errorBox = document.getElementById('error-box');
+    const noticeBox = document.getElementById('notice-box');
     const reportCard = document.getElementById('report-card');
     const stamp = document.getElementById('stamp');
     const scoreValue = document.getElementById('score-value');
     const verdictText = document.getElementById('verdict-text');
     const exhibitList = document.getElementById('exhibit-list');
+
+    // Polling config for jobs handed to the home worker (see remote_worker.py).
+    // ~40 attempts * 3s = 2 minutes before giving up.
+    const JOB_POLL_INTERVAL_MS = 3000;
+    const JOB_POLL_MAX_ATTEMPTS = 40;
  
     // Helper Functions
     function verdictClass(label) { 
@@ -605,6 +627,41 @@
       if (score >= 0.4) return 'var(--mixed)'; 
       return 'var(--fake)'; 
     }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Poll /api/jobs/{job_id} until the worker finishes (or times out).
+    // Returns the final result dict, same shape /api/check returns directly.
+    async function pollJob(jobId) {
+      for (let attempt = 0; attempt < JOB_POLL_MAX_ATTEMPTS; attempt++) {
+        await sleep(JOB_POLL_INTERVAL_MS);
+
+        const res = await fetch(`/api/jobs/${jobId}`);
+        if (!res.ok) {
+          throw new Error('Lost track of the analysis job (server returned ' + res.status + ').');
+        }
+        const job = await res.json();
+
+        if (job.status === 'done') {
+          return job.result;
+        }
+        if (job.status === 'error') {
+          return job.result || { error: 'The analysis job failed with no further detail.' };
+        }
+        // still queued/running — keep polling, with a bit of reassurance
+        if (attempt === 3) {
+          statusText.textContent = 'Still working — a helper is fetching the live page...';
+        } else if (attempt === 12) {
+          statusText.textContent = 'This is taking a little longer than usual, hang tight...';
+        }
+      }
+      return {
+        error: 'Analysis timed out waiting for a result. The scraping worker may be offline ' +
+               'right now — try again in a bit, or try one of the demo products below.'
+      };
+    }
  
     // Core Request Handler
     async function runCheck() {
@@ -618,6 +675,7 @@
  
       // Reset State
       errorBox.style.display = 'none'; 
+      noticeBox.style.display = 'none';
       reportCard.classList.remove('visible'); 
       submitBtn.disabled = true; 
       statusBox.classList.add('visible'); 
@@ -625,7 +683,7 @@
  
       try { 
         const stageTimer = setTimeout(() => { 
-          statusText.textContent = 'Running authenticity analysis (first run downloads a model, may take a minute)...'; 
+          statusText.textContent = 'Running authenticity analysis...'; 
         }, 2500);
  
         const res = await fetch('/api/check', { 
@@ -635,13 +693,25 @@
         }); 
  
         clearTimeout(stageTimer); 
-        const data = await res.json();
+        let data = await res.json();
+
+        // Server couldn't reach the store directly (blocked from this host)
+        // and handed the job to a connected home worker instead.
+        if (data.status === 'queued' && data.job_id) {
+          statusText.textContent = data.message || 'Queued for analysis...';
+          data = await pollJob(data.job_id);
+        }
  
         if (data.error) { 
-          errorBox.textContent = data.error; 
+          errorBox.textContent = data.error + (data.hint ? ' ' + data.hint : ''); 
           errorBox.style.display = 'block'; 
           return; 
         } 
+
+        if (data.notice) {
+          noticeBox.textContent = data.notice;
+          noticeBox.style.display = 'block';
+        }
  
         renderReport(data);
  
@@ -715,4 +785,3 @@
   </script>
 </body>
 </html>
- 
