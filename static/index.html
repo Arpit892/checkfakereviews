@@ -247,6 +247,74 @@
       font-size: 13px;
       line-height: 1.45;
     }
+
+    /* Paste-HTML fallback */
+    .paste-toggle {
+      display: inline-block;
+      margin-top: 12px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 700;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    #paste-panel {
+      display: none;
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px dashed #bfcfce;
+      border-radius: 12px;
+      background: #fbfdfc;
+    }
+
+    #paste-panel.visible {
+      display: block;
+    }
+
+    #paste-panel ol {
+      margin: 0 0 10px;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    #paste-panel textarea {
+      width: 100%;
+      min-height: 90px;
+      padding: 10px 12px;
+      border: 1px solid #bfcfce;
+      border-radius: 10px;
+      font: 12px/1.4 ui-monospace, monospace;
+      resize: vertical;
+    }
+
+    #paste-panel textarea:focus {
+      outline: 3px solid #cdeee2;
+      border-color: var(--green);
+    }
+
+    #paste-submit {
+      margin-top: 10px;
+      min-height: 44px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--green);
+      cursor: pointer;
+      font: 700 14px inherit;
+    }
+
+    #paste-submit:disabled {
+      cursor: not-allowed;
+      opacity: .58;
+    }
  
     /* ==========================================
        Report Card & Exhibits
@@ -546,6 +614,21 @@
         <div id="notice-box"></div>
         
         <div id="error-box"></div>
+
+        <button type="button" class="paste-toggle" id="paste-toggle">Live scan blocked? Paste the page HTML instead</button>
+
+        <div id="paste-panel">
+          <ol>
+            <li>Open the product page in a normal browser tab (works on Flipkart, which blocks automated scans).</li>
+            <li>Right-click anywhere on the page → <strong>View Page Source</strong> (or press Ctrl+U).</li>
+            <li>Press Ctrl+A then Ctrl+C to select and copy everything.</li>
+            <li>Paste it into the box below and click Analyze.</li>
+          </ol>
+          <label for="html-input" style="position:absolute;width:1px;height:1px;overflow:hidden;">Pasted page HTML</label>
+          <textarea id="html-input" placeholder="Paste the page source here..."></textarea>
+          <br>
+          <button class="submit-btn" id="paste-submit">Analyze pasted HTML</button>
+        </div>
       </div>
  
       <div class="report-card" id="report-card">
@@ -603,6 +686,10 @@
     const scoreValue = document.getElementById('score-value');
     const verdictText = document.getElementById('verdict-text');
     const exhibitList = document.getElementById('exhibit-list');
+    const pasteToggle = document.getElementById('paste-toggle');
+    const pastePanel = document.getElementById('paste-panel');
+    const htmlInput = document.getElementById('html-input');
+    const pasteSubmit = document.getElementById('paste-submit');
 
     // Polling config for jobs handed to the home worker (see remote_worker.py).
     // ~40 attempts * 3s = 2 minutes before giving up.
@@ -705,6 +792,9 @@
         if (data.error) { 
           errorBox.textContent = data.error + (data.hint ? ' ' + data.hint : ''); 
           errorBox.style.display = 'block'; 
+          if (data.error_code === 'BLOCKED') {
+            pastePanel.classList.add('visible');
+          }
           return; 
         } 
 
@@ -782,6 +872,55 @@
         runCheck(); 
       }); 
     });
+
+    pasteToggle.addEventListener('click', () => {
+      pastePanel.classList.toggle('visible');
+    });
+
+    pasteSubmit.addEventListener('click', runPasteCheck);
+
+    async function runPasteCheck() {
+      const html = htmlInput.value.trim();
+      const url = urlInput.value.trim();
+
+      if (!html || html.length < 500) {
+        errorBox.textContent = 'That doesn\'t look like a full page source — make sure you copied the entire page (Ctrl+A before Ctrl+C).';
+        errorBox.style.display = 'block';
+        return;
+      }
+
+      errorBox.style.display = 'none';
+      noticeBox.style.display = 'none';
+      reportCard.classList.remove('visible');
+      pasteSubmit.disabled = true;
+      pasteSubmit.textContent = 'Analyzing...';
+
+      try {
+        const res = await fetch('/api/analyze-html', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, html })
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          errorBox.textContent = data.error;
+          errorBox.style.display = 'block';
+          return;
+        }
+
+        renderReport(data);
+        pastePanel.classList.remove('visible');
+        htmlInput.value = '';
+
+      } catch (err) {
+        errorBox.textContent = 'Something went wrong reaching the server: ' + err.message;
+        errorBox.style.display = 'block';
+      } finally {
+        pasteSubmit.disabled = false;
+        pasteSubmit.textContent = 'Analyze pasted HTML';
+      }
+    }
   </script>
 </body>
 </html>
