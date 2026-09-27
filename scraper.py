@@ -114,10 +114,16 @@ def is_short_link(url: str) -> bool:
 
 def resolve_short_link(url: str) -> str:
     """
-    Phone share buttons produce short links (amzn.in/d/xxx, fkrt.cc/...) with
-    no ASIN/pid anywhere in them — the ID only appears after the redirect
+    Phone share buttons produce short links (amzn.in/d/xxx, dl.flipkart.com/s/xxx)
+    with no ASIN/pid anywhere in them — the ID only appears after the redirect
     resolves. HEAD first (cheap); fall back to GET if the store doesn't
     support HEAD.
+
+    Some short-link services (notably dl.flipkart.com, which looks like a
+    deferred-deep-link / "open in app" service) don't do a plain HTTP 3xx
+    redirect at all — they return 200 with an HTML page that redirects via
+    JavaScript or a meta-refresh tag instead, which requests.get() can't
+    follow. As a last resort, scan that page's body for the real product URL.
     """
     try:
         r = requests.head(url, headers=_headers(), timeout=10, allow_redirects=True)
@@ -125,13 +131,32 @@ def resolve_short_link(url: str) -> str:
             return r.url
     except requests.RequestException:
         pass
+
+    body = ""
     try:
-        r = requests.get(url, headers=_headers(), timeout=15, allow_redirects=True, stream=True)
-        r.close()
+        r = requests.get(url, headers=_headers(), timeout=15, allow_redirects=True)
         if r.url and r.url != url:
             return r.url
+        body = r.text
     except requests.RequestException:
         pass
+
+    if body:
+        # <meta http-equiv="refresh" content="0;url=https://...">
+        m = re.search(r'http-equiv=["\']refresh["\'][^>]*content=["\'][^"\']*url=([^"\']+)', body, re.I)
+        if m:
+            return m.group(1)
+        # A canonical/og:url tag, or any embedded flipkart.com product link
+        # (JS redirect scripts usually assign the target to window.location
+        # as a plain string literal somewhere in the page).
+        m = (
+            re.search(r'<link rel=["\']canonical["\'] href=["\']([^"\']+)["\']', body, re.I)
+            or re.search(r'property=["\']og:url["\'][^>]*content=["\']([^"\']+)["\']', body, re.I)
+            or re.search(r'(https?://(?:www\.)?flipkart\.com/[^\s"\'\\]+/p/itm[A-Za-z0-9]+[^\s"\'\\]*)', body)
+        )
+        if m:
+            return m.group(1)
+
     return url
 
 
