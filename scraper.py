@@ -322,55 +322,64 @@ def parse_amazon(html: str) -> tuple:
 # --------------------------------------------------------------------------
 
 # Flipkart's real classes are hashed/auto-generated (e.g. "css-146c3p1") and
-# rotate on every deploy — not worth targeting. Instead, every review reliably
-# renders as: "<rating> • <title...body...> <Name> , <Location> Helpful for
-# <n> <m> [Verified Purchase] · <Mon>, <Year>" in the page's visible text.
-# That phrasing is UI copy, not a CSS class, so it survives rebuilds far
-# better. We split the page's plain text on the rating marker, then pull
-# name/location/date off the tail of each chunk.
+# rotate on every deploy — not worth targeting. Flipkart also appears to
+# serve at least two different text renderings of the same review widget
+# (one with "Helpful for N M" counts and a "rating •" prefix, one without —
+# looks like a hydration-timing variant, not something we control). The one
+# thing common to both: every review ends with "Verified Purchase · Mon,
+# Year" (verified badge is optional, the date/bullet always renders), and is
+# immediately preceded by "Name , Location". We anchor on that instead of
+# anything more specific — it's UI copy, not a CSS class, and it survives
+# both variants we've observed.
 _FK_NAME_WORD = r"[A-Z][a-zA-Z.'\-]*"
 _FK_NAME = _FK_NAME_WORD + r"(?:\s+" + _FK_NAME_WORD + r"){0,3}"
 
-FK_REVIEW_TAIL_RE = re.compile(
-    r"^(?P<body>.*?)\s*"
-    r"(?P<name>" + _FK_NAME + r")\s*,\s*"
-    r"(?P<location>" + _FK_NAME + r")\s*"
-    r"Helpful for\s+(?P<helpful>\d+)\s+(?P<nothelpful>\d+)\s*"
-    r"(?P<verified>Verified Purchase)?\s*"
-    r"·\s*(?P<date>[A-Za-z]+,?\s*\d{4})\s*$",
-    re.S,
-)
+FK_NAME_LOCATION_RE = re.compile(r"(?P<name>" + _FK_NAME + r")\s*,\s*(?P<location>" + _FK_NAME + r")")
+FK_REVIEW_END_RE = re.compile(r"(?P<verified>Verified Purchase\s*)?·\s*(?P<date>[A-Za-z]+,?\s*\d{4})")
+FK_REVIEWS_START_RE = re.compile(r"reviews?\s+sorted\s+by\s*", re.I)
+FK_RATING_PREFIX_RE = re.compile(r"^\s*(\d\.\d)\s*•\s*")
 
 
 def _parse_flipkart_reviews_from_text(soup: BeautifulSoup) -> List[Review]:
     text = soup.get_text(" ", strip=True)
-    # Rating markers like "4.0 •" mark the start of each review. The initial
-    # ratings-breakdown summary uses "★" not "•", so it won't false-match.
-    parts = re.split(r"(\d\.\d)\s*•\s*", text)
-    if len(parts) < 3:
-        return []
+
+    start_m = FK_REVIEWS_START_RE.search(text)
+    start_idx = start_m.end() if start_m else 0
 
     reviews = []
-    for rating_str, chunk in zip(parts[1::2], parts[2::2]):
-        m = FK_REVIEW_TAIL_RE.match(chunk)
-        if not m:
+    prev_end = start_idx
+    for m in FK_REVIEW_END_RE.finditer(text):
+        if m.start() < start_idx:
             continue
-        body = m.group("body")
+        chunk = text[prev_end:m.start()]
+        prev_end = m.end()
+
+        # The name/location pair sits right before this end-anchor. Body text
+        # can itself contain comma-separated words, so take the LAST match in
+        # the chunk (closest to the anchor) rather than the first.
+        nl_matches = list(FK_NAME_LOCATION_RE.finditer(chunk))
+        if not nl_matches:
+            continue
+        nl = nl_matches[-1]
+
+        body = chunk[: nl.start()]
+        rating_m = FK_RATING_PREFIX_RE.match(body)
+        rating = float(rating_m.group(1)) if rating_m else None
+        if rating_m:
+            body = body[rating_m.end():]
         # Strip a leading "Review for: Color Black" style variant line.
         body = re.sub(r"Review for:\s*\S+\s+\S+\s*", "", body, count=1).strip()
-        if len(body) < 3:
+
+        if len(body) < 3 or len(body) > 2000:
             continue
-        try:
-            rating = float(rating_str)
-        except ValueError:
-            rating = None
+
         reviews.append(
             Review(
-                reviewer_name=_clean(m.group("name")),
+                reviewer_name=_clean(nl.group("name")),
                 text=_clean(body),
                 rating=rating,
                 verified=bool(m.group("verified")),
-                meta={"date": m.group("date"), "location": _clean(m.group("location"))},
+                meta={"date": m.group("date"), "location": _clean(nl.group("location"))},
             )
         )
     return reviews
