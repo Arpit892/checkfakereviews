@@ -102,7 +102,14 @@ def detect_site(url: str) -> str:
 
 def is_short_link(url: str) -> bool:
     low = url.lower()
-    return any(d in low for d in ("amzn.in", "amzn.to", "a.co", "fkrt."))
+    if any(d in low for d in ("amzn.in", "amzn.to", "a.co", "fkrt.", "dl.flipkart.com")):
+        return True
+    # Flipkart's share-link shortener uses paths like /s/<code> with no
+    # product id anywhere in the URL — catch that shape even on a domain
+    # we haven't seen a name for yet.
+    if "flipkart.com" in low and re.search(r"/s/[A-Za-z0-9]+", url):
+        return True
+    return False
 
 
 def resolve_short_link(url: str) -> str:
