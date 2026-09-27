@@ -321,11 +321,70 @@ def parse_amazon(html: str) -> tuple:
 # Flipkart parsing
 # --------------------------------------------------------------------------
 
+# Flipkart's real classes are hashed/auto-generated (e.g. "css-146c3p1") and
+# rotate on every deploy — not worth targeting. Instead, every review reliably
+# renders as: "<rating> • <title...body...> <Name> , <Location> Helpful for
+# <n> <m> [Verified Purchase] · <Mon>, <Year>" in the page's visible text.
+# That phrasing is UI copy, not a CSS class, so it survives rebuilds far
+# better. We split the page's plain text on the rating marker, then pull
+# name/location/date off the tail of each chunk.
+_FK_NAME_WORD = r"[A-Z][a-zA-Z.'\-]*"
+_FK_NAME = _FK_NAME_WORD + r"(?:\s+" + _FK_NAME_WORD + r"){0,3}"
+
+FK_REVIEW_TAIL_RE = re.compile(
+    r"^(?P<body>.*?)\s*"
+    r"(?P<name>" + _FK_NAME + r")\s*,\s*"
+    r"(?P<location>" + _FK_NAME + r")\s*"
+    r"Helpful for\s+(?P<helpful>\d+)\s+(?P<nothelpful>\d+)\s*"
+    r"(?P<verified>Verified Purchase)?\s*"
+    r"·\s*(?P<date>[A-Za-z]+,?\s*\d{4})\s*$",
+    re.S,
+)
+
+
+def _parse_flipkart_reviews_from_text(soup: BeautifulSoup) -> List[Review]:
+    text = soup.get_text(" ", strip=True)
+    # Rating markers like "4.0 •" mark the start of each review. The initial
+    # ratings-breakdown summary uses "★" not "•", so it won't false-match.
+    parts = re.split(r"(\d\.\d)\s*•\s*", text)
+    if len(parts) < 3:
+        return []
+
+    reviews = []
+    for rating_str, chunk in zip(parts[1::2], parts[2::2]):
+        m = FK_REVIEW_TAIL_RE.match(chunk)
+        if not m:
+            continue
+        body = m.group("body")
+        # Strip a leading "Review for: Color Black" style variant line.
+        body = re.sub(r"Review for:\s*\S+\s+\S+\s*", "", body, count=1).strip()
+        if len(body) < 3:
+            continue
+        try:
+            rating = float(rating_str)
+        except ValueError:
+            rating = None
+        reviews.append(
+            Review(
+                reviewer_name=_clean(m.group("name")),
+                text=_clean(body),
+                rating=rating,
+                verified=bool(m.group("verified")),
+                meta={"date": m.group("date"), "location": _clean(m.group("location"))},
+            )
+        )
+    return reviews
+
+
 def parse_flipkart(html: str) -> tuple:
     """
-    Flipkart's CSS class names are obfuscated and rotate every few weeks, so
-    selector-only parsing rots fast. Strategy: try known selectors first, then
-    fall back to a structural heuristic (blocks containing a star-rating badge).
+    Strategy, most to least reliable:
+      1. Text-pattern extraction (see _parse_flipkart_reviews_from_text) —
+         survives Flipkart's hashed-class rebuilds.
+      2. Known CSS selectors, in case a build reverts to human-readable
+         classes.
+      3. Structural fallback keyed on "Verified Purchase" / "Certified Buyer"
+         text.
     """
     soup = BeautifulSoup(html, "html.parser")
 
@@ -337,9 +396,17 @@ def parse_flipkart(html: str) -> tuple:
             break
     if not product_name:
         og = soup.find("meta", property="og:title")
-        product_name = _clean(og["content"]) if og and og.get("content") else "Unknown product"
+        if og and og.get("content"):
+            product_name = _clean(og["content"])
+            # Product-reviews pages duplicate the title as "<name> Reviews:
+            # Latest Review of <name> | Price in India | Flipkart.com".
+            product_name = re.split(r"\s+Reviews:\s+Latest Review of", product_name)[0].strip()
+    if not product_name:
+        product_name = "Unknown product"
 
-    reviews = []
+    reviews = _parse_flipkart_reviews_from_text(soup)
+    if reviews:
+        return product_name, reviews
 
     # Known text containers, newest first.
     for sel in ("div.ZmyHeo div div", "div.ZmyHeo", "div.t-ZTKy div div", "div.t-ZTKy", "div.qwjRop div"):
@@ -364,7 +431,7 @@ def parse_flipkart(html: str) -> tuple:
                             name = _clean(nm.get_text())
                             break
                     blob = hop.get_text(" ")
-                    if "Certified Buyer" in blob:
+                    if "Certified Buyer" in blob or "Verified Purchase" in blob:
                         verified = True
                     rm = re.search(r"\b([1-5])\s*★", blob) or re.search(r"^\s*([1-5])\b", blob)
                     if rm and rating is None:
@@ -378,13 +445,16 @@ def parse_flipkart(html: str) -> tuple:
             if reviews:
                 break
 
-    # Structural fallback: any div whose text mentions Certified Buyer.
+    # Structural fallback: any div whose text mentions a verification badge.
     if not reviews:
         for div in soup.find_all("div"):
             blob = _clean(div.get_text(" "))
-            if "Certified Buyer" not in blob or len(blob) > 600 or len(blob) < 30:
+            badge = "Certified Buyer" if "Certified Buyer" in blob else (
+                "Verified Purchase" if "Verified Purchase" in blob else None
+            )
+            if not badge or len(blob) > 600 or len(blob) < 30:
                 continue
-            body = re.split(r"Certified Buyer", blob)[0]
+            body = re.split(badge, blob)[0]
             body = re.sub(r"^\s*[1-5]\s*", "", body)
             body = re.sub(r"\s*(READ MORE)\s*$", "", body, flags=re.I)
             if len(body) < 8:
