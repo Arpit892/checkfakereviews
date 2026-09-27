@@ -136,6 +136,24 @@ def run_analysis(url: str) -> dict:
         return cached
 
     started = time.time()
+
+    # Flipkart either reCAPTCHA-blocks a plain request outright, or returns a
+    # page whose reviews are loaded by client-side JS after the fact — a
+    # plain request sees neither a block nor reviews, just NO_REVIEWS, which
+    # used to dead-end right here without ever reaching the worker's real
+    # browser. Skip straight to the worker for Flipkart when one is online.
+    if site == "flipkart" and worker_online():
+        job_id = storage.create_job(url)
+        return {
+            "status": "queued",
+            "job_id": job_id,
+            "poll": f"/api/jobs/{job_id}",
+            "message": "Flipkart needs a real browser to load reviews — handed to the "
+                       "connected worker. Poll the job for the result.",
+            "product_id": product_id,
+            "site": site,
+        }
+
     try:
         page = scrape_product(url, max_reviews=MAX_REVIEWS)
         result = analyze_reviews(page.product_name, page.reviews)
@@ -153,8 +171,10 @@ def run_analysis(url: str) -> dict:
 
     except ScrapeError as e:
         # Blocked from this datacenter IP, but a residential worker is
-        # connected: queue the job for it instead of giving up.
-        if e.reason in ("BLOCKED", "NETWORK", "HTTP_ERROR") and worker_online():
+        # connected: queue the job for it instead of giving up. NO_REVIEWS is
+        # included too — a page that loaded fine but parsed empty (common on
+        # JS-rendered sites) is exactly the case a real browser can rescue.
+        if e.reason in ("BLOCKED", "NETWORK", "HTTP_ERROR", "NO_REVIEWS") and worker_online():
             job_id = storage.create_job(url)
             return {
                 "status": "queued",
