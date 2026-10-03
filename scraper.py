@@ -172,12 +172,26 @@ def fetch_html(url: str, retries: int = 2) -> str:
                     url, headers=_headers(), timeout=SCRAPE_TIMEOUT, proxies=proxies
                 )
 
-            if resp.status_code in (403, 429, 503):
+            # 403/429/503 are classic bot-detection responses. The rest of this
+            # set (500/502/504, and the 520-530 Cloudflare-style "overloaded"
+            # range, which 529 falls in) usually means a WAF or rate-limiter in
+            # front of the store is throttling this IP, not that the page
+            # itself is broken — same underlying problem, worth retrying and
+            # backing off rather than giving up immediately.
+            THROTTLE_CODES = {403, 429, 500, 502, 503, 504} | set(range(520, 531))
+            if resp.status_code in THROTTLE_CODES:
                 dump = _dump_debug_html(resp.text, f"blocked_http{resp.status_code}")
+                if resp.status_code in (403, 429, 503):
+                    reason = "the request was refused, almost certainly bot detection on this server's IP."
+                else:
+                    reason = (
+                        "the store (or a filter in front of it) is reporting overload/throttling — "
+                        "usually temporary, and often caused by making many requests in a short "
+                        "time from the same IP."
+                    )
                 raise ScrapeError(
                     "BLOCKED",
-                    f"Store returned HTTP {resp.status_code} — the request was refused, "
-                    "almost certainly bot detection on this server's IP."
+                    f"Store returned HTTP {resp.status_code} — {reason}"
                     + (f" Raw response saved to {dump}." if dump else ""),
                     resp.status_code,
                 )
