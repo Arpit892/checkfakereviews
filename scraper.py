@@ -82,6 +82,15 @@ def is_short_link(url: str) -> bool:
     return False
 
 
+def proxy_mode() -> str:
+    """Reports which scraping path is active, for /api/health and error hints."""
+    if SCRAPERAPI_KEY:
+        return "scraperapi"
+    if PROXY_URL:
+        return "proxy"
+    return "direct"
+
+
 def _headers() -> dict:
     return {
         "User-Agent": random.choice(USER_AGENTS),
