@@ -1,27 +1,6 @@
 """
 scraper.py
 Live product + review scraping for Amazon.in and Flipkart.
-
-Design notes (read these before debugging):
-
-1. This uses plain HTTP (requests) and NOT a headless browser. Chromium under
-   Playwright/Selenium will OOM on Render's 512MB free tier. Both Amazon and
-   Flipkart still server-render enough review HTML for a first pass.
-
-2. Amazon and Flipkart block datacenter IPs far more aggressively than home
-   connections. This is the #1 reason a scraper works on your laptop and
-   returns nothing on Render. If PROXY_URL or SCRAPERAPI_KEY is set in the
-   environment, requests are routed through it. Without a proxy, expect
-   intermittent BLOCKED results from cloud hosts.
-
-3. When scraping fails we raise ScrapeError with a MACHINE-READABLE reason
-   instead of silently returning zero reviews. The API layer surfaces that
-   reason so you can tell "blocked" apart from "layout changed".
-
-Environment variables:
-    PROXY_URL        e.g. http://user:pass@gate.smartproxy.com:7000
-    SCRAPERAPI_KEY   if set, requests go through api.scraperapi.com
-    SCRAPE_TIMEOUT   per-request timeout in seconds (default 20)
 """
 
 import os
@@ -60,11 +39,9 @@ BLOCK_MARKERS = (
 
 
 class ScrapeError(Exception):
-    """Raised when scraping fails. `reason` is a stable machine-readable code."""
-
     def __init__(self, reason: str, message: str, status: Optional[int] = None):
         super().__init__(message)
-        self.reason = reason          # BLOCKED | HTTP_ERROR | NETWORK | NO_REVIEWS | UNSUPPORTED_SITE
+        self.reason = reason
         self.message = message
         self.status = status
 
@@ -87,15 +64,11 @@ class ProductPage:
     source_url: str
 
 
-# --------------------------------------------------------------------------
-# URL handling
-# --------------------------------------------------------------------------
-
 def detect_site(url: str) -> str:
     low = url.lower()
     if "amazon." in low or "amzn.in" in low or "amzn.to" in low or "a.co" in low:
         return "amazon"
-    if "flipkart." in low or "fkrt." in low:
+    if "flipkart." in low or "fkrt." in low or "dl.flipkart.com" in low:
         return "flipkart"
     return "unknown"
 
@@ -104,26 +77,31 @@ def is_short_link(url: str) -> bool:
     low = url.lower()
     if any(d in low for d in ("amzn.in", "amzn.to", "a.co", "fkrt.", "dl.flipkart.com")):
         return True
-    # Flipkart's share-link shortener uses paths like /s/<code> with no
-    # product id anywhere in the URL — catch that shape even on a domain
-    # we haven't seen a name for yet.
     if "flipkart.com" in low and re.search(r"/s/[A-Za-z0-9]+", url):
         return True
     return False
 
 
+def _headers() -> dict:
+    return {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-IN,en-GB;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+    }
+
+
 def resolve_short_link(url: str) -> str:
     """
     Phone share buttons produce short links (amzn.in/d/xxx, dl.flipkart.com/s/xxx)
-    with no ASIN/pid anywhere in them — the ID only appears after the redirect
-    resolves. HEAD first (cheap); fall back to GET if the store doesn't
-    support HEAD.
-
-    Some short-link services (notably dl.flipkart.com, which looks like a
-    deferred-deep-link / "open in app" service) don't do a plain HTTP 3xx
-    redirect at all — they return 200 with an HTML page that redirects via
-    JavaScript or a meta-refresh tag instead, which requests.get() can't
-    follow. As a last resort, scan that page's body for the real product URL.
+    with no ASIN/pid anywhere in them. HEAD first; GET fallback; then scan the
+    body for a meta-refresh / canonical / embedded product URL, since some
+    short-link services (dl.flipkart.com) redirect via JS, not HTTP 3xx.
     """
     try:
         r = requests.head(url, headers=_headers(), timeout=10, allow_redirects=True)
@@ -142,13 +120,9 @@ def resolve_short_link(url: str) -> str:
         pass
 
     if body:
-        # <meta http-equiv="refresh" content="0;url=https://...">
         m = re.search(r'http-equiv=["\']refresh["\'][^>]*content=["\'][^"\']*url=([^"\']+)', body, re.I)
         if m:
             return m.group(1)
-        # A canonical/og:url tag, or any embedded flipkart.com product link
-        # (JS redirect scripts usually assign the target to window.location
-        # as a plain string literal somewhere in the page).
         m = (
             re.search(r'<link rel=["\']canonical["\'] href=["\']([^"\']+)["\']', body, re.I)
             or re.search(r'property=["\']og:url["\'][^>]*content=["\']([^"\']+)["\']', body, re.I)
@@ -160,59 +134,17 @@ def resolve_short_link(url: str) -> str:
     return url
 
 
-def extract_product_id(url: str) -> Optional[str]:
-    """
-    Amazon: /dp/ASIN, /gp/product/ASIN, /product-reviews/ASIN
-    Flipkart: ?pid=ITM... (authoritative) or /p/itm...
-    """
-    site = detect_site(url)
-
-    if site == "amazon":
-        m = (
-            re.search(r"/dp/([A-Z0-9]{10})", url, re.I)
-            or re.search(r"/gp/product/([A-Z0-9]{10})", url, re.I)
-            or re.search(r"/gp/aw/d/([A-Z0-9]{10})", url, re.I)   # mobile app share link
-            or re.search(r"/product-reviews/([A-Z0-9]{10})", url, re.I)
-            or re.search(r"[?&]asin=([A-Z0-9]{10})", url, re.I)
-        )
-        return m.group(1).upper() if m else None
-
-    if site == "flipkart":
-        # Prefer the itm... id: it's what demo_data.py is keyed on, so the
-        # fallback path keeps working. pid= is the variant-level backup.
-        m = re.search(r"/p/(itm[A-Za-z0-9]+)", url)
-        if m:
-            return m.group(1)
-        m = re.search(r"[?&]pid=([A-Za-z0-9]+)", url)
-        return m.group(1) if m else None
-
-    return None
-
-
-# --------------------------------------------------------------------------
-# Fetching
-# --------------------------------------------------------------------------
-
-def _headers() -> dict:
-    return {
-        "User-Agent": random.choice(USER_AGENTS),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-IN,en-GB;q=0.9,en;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-    }
-
-
-def proxy_mode() -> str:
-    if SCRAPERAPI_KEY:
-        return "scraperapi"
-    if PROXY_URL:
-        return "proxy"
-    return "direct"
+def _dump_debug_html(html: str, tag: str) -> Optional[str]:
+    if not DEBUG_DUMP:
+        return None
+    try:
+        os.makedirs(DEBUG_DIR, exist_ok=True)
+        path = os.path.join(DEBUG_DIR, f"{tag}_{int(time.time())}.html")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(html)
+        return path
+    except OSError:
+        return None
 
 
 def fetch_html(url: str, retries: int = 2) -> str:
@@ -281,12 +213,31 @@ def fetch_html(url: str, retries: int = 2) -> str:
     raise last_err  # pragma: no cover
 
 
-# --------------------------------------------------------------------------
-# Amazon parsing
-# --------------------------------------------------------------------------
-
 def _clean(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "")).strip()
+
+
+def extract_product_id(url: str) -> Optional[str]:
+    site = detect_site(url)
+
+    if site == "amazon":
+        m = (
+            re.search(r"/dp/([A-Z0-9]{10})", url, re.I)
+            or re.search(r"/gp/product/([A-Z0-9]{10})", url, re.I)
+            or re.search(r"/gp/aw/d/([A-Z0-9]{10})", url, re.I)
+            or re.search(r"/product-reviews/([A-Z0-9]{10})", url, re.I)
+            or re.search(r"[?&]asin=([A-Z0-9]{10})", url, re.I)
+        )
+        return m.group(1).upper() if m else None
+
+    if site == "flipkart":
+        m = re.search(r"/p/(itm[A-Za-z0-9]+)", url)
+        if m:
+            return m.group(1)
+        m = re.search(r"[?&]pid=([A-Za-z0-9]+)", url)
+        return m.group(1) if m else None
+
+    return None
 
 
 def parse_amazon(html: str) -> tuple:
@@ -305,14 +256,14 @@ def parse_amazon(html: str) -> tuple:
     blocks = (
         soup.select('div[data-hook="review"]')
         or soup.select("div.review")
-        or soup.select('li[data-hook="review"]')          # some A/B layouts use <li>
+        or soup.select('li[data-hook="review"]')
         or soup.select("div.a-section.review")
     )
     reviews = []
     for b in blocks:
         body_el = (
-            b.select_one('div[data-hook="reviewRichContentContainer"]')  # current layout (2026)
-            or b.select_one('span[data-hook="review-body"] span')        # older layout
+            b.select_one('div[data-hook="reviewRichContentContainer"]')
+            or b.select_one('span[data-hook="review-body"] span')
             or b.select_one('span[data-hook="review-body"]')
             or b.select_one(".review-text-content span")
             or b.select_one(".review-text-content")
@@ -349,20 +300,11 @@ def parse_amazon(html: str) -> tuple:
     return product_name, reviews
 
 
-# --------------------------------------------------------------------------
-# Flipkart parsing
-# --------------------------------------------------------------------------
-
-# Flipkart's real classes are hashed/auto-generated (e.g. "css-146c3p1") and
-# rotate on every deploy — not worth targeting. Flipkart also appears to
-# serve at least two different text renderings of the same review widget
-# (one with "Helpful for N M" counts and a "rating •" prefix, one without —
-# looks like a hydration-timing variant, not something we control). The one
-# thing common to both: every review ends with "Verified Purchase · Mon,
-# Year" (verified badge is optional, the date/bullet always renders), and is
-# immediately preceded by "Name , Location". We anchor on that instead of
-# anything more specific — it's UI copy, not a CSS class, and it survives
-# both variants we've observed.
+# Flipkart's real classes are hashed/auto-generated and rotate on every
+# deploy — not worth targeting. Flipkart also serves at least two different
+# text renderings of the same review widget. The one thing common to both:
+# every review ends with "Verified Purchase · Mon, Year" (verified badge
+# optional, date/bullet always renders), preceded by "Name , Location".
 _FK_NAME_WORD = r"[A-Z][a-zA-Z.'\-]*"
 _FK_NAME = _FK_NAME_WORD + r"(?:\s+" + _FK_NAME_WORD + r"){0,3}"
 
@@ -370,6 +312,22 @@ FK_NAME_LOCATION_RE = re.compile(r"(?P<name>" + _FK_NAME + r")\s*,\s*(?P<locatio
 FK_REVIEW_END_RE = re.compile(r"(?P<verified>Verified Purchase\s*)?·\s*(?P<date>[A-Za-z]+,?\s*\d{4})")
 FK_REVIEWS_START_RE = re.compile(r"reviews?\s+sorted\s+by\s*", re.I)
 FK_RATING_PREFIX_RE = re.compile(r"^\s*(\d\.\d)\s*•\s*")
+
+# Overall-rating badge e.g. "4.3 | 6" — total ratings count for the product,
+# as distinct from the number of WRITTEN reviews (which can be zero even
+# when ratings exist). Useful for telling "no reviews to find" apart from
+# "scraper broke."
+FK_RATING_BADGE_RE = re.compile(r"(\d\.\d)\s*\|\s*(\d+)\b")
+FK_RATINGS_AND_REVIEWS_RE = re.compile(r"([\d,]+)\s+ratings?\s+and\s+([\d,]+)\s+reviews?", re.I)
+
+# Below this many total ratings, Flipkart very often has zero WRITTEN reviews
+# at all (just star ratings) — the review feed section doesn't render
+# anything. The fallback CSS-selector scans below are also extremely
+# expensive on a large, deeply-nested PDP (a full product page with many
+# "Similar Products" cards can take 60+ seconds to walk with soupsieve), so
+# skip them entirely once we already know there's unlikely to be anything to
+# find — this is both a correctness and a performance fix.
+MIN_RATINGS_FOR_REVIEWS = int(os.environ.get("MIN_RATINGS_FOR_REVIEWS", "10"))
 
 
 def _parse_flipkart_reviews_from_text(soup: BeautifulSoup) -> List[Review]:
@@ -386,9 +344,6 @@ def _parse_flipkart_reviews_from_text(soup: BeautifulSoup) -> List[Review]:
         chunk = text[prev_end:m.start()]
         prev_end = m.end()
 
-        # The name/location pair sits right before this end-anchor. Body text
-        # can itself contain comma-separated words, so take the LAST match in
-        # the chunk (closest to the anchor) rather than the first.
         nl_matches = list(FK_NAME_LOCATION_RE.finditer(chunk))
         if not nl_matches:
             continue
@@ -399,7 +354,6 @@ def _parse_flipkart_reviews_from_text(soup: BeautifulSoup) -> List[Review]:
         rating = float(rating_m.group(1)) if rating_m else None
         if rating_m:
             body = body[rating_m.end():]
-        # Strip a leading "Review for: Color Black" style variant line.
         body = re.sub(r"Review for:\s*\S+\s+\S+\s*", "", body, count=1).strip()
 
         if len(body) < 3 or len(body) > 2000:
@@ -417,16 +371,29 @@ def _parse_flipkart_reviews_from_text(soup: BeautifulSoup) -> List[Review]:
     return reviews
 
 
+def flipkart_total_ratings_count(soup: BeautifulSoup) -> Optional[int]:
+    """
+    Best-effort read of how many total ratings the product has, from
+    whichever summary text is present. Returns None if neither pattern is
+    found (don't guess).
+    """
+    text = soup.get_text(" ", strip=True)
+    m = FK_RATINGS_AND_REVIEWS_RE.search(text)
+    if m:
+        try:
+            return int(m.group(1).replace(",", ""))
+        except ValueError:
+            pass
+    m = FK_RATING_BADGE_RE.search(text)
+    if m:
+        try:
+            return int(m.group(2))
+        except ValueError:
+            pass
+    return None
+
+
 def parse_flipkart(html: str) -> tuple:
-    """
-    Strategy, most to least reliable:
-      1. Text-pattern extraction (see _parse_flipkart_reviews_from_text) —
-         survives Flipkart's hashed-class rebuilds.
-      2. Known CSS selectors, in case a build reverts to human-readable
-         classes.
-      3. Structural fallback keyed on "Verified Purchase" / "Certified Buyer"
-         text.
-    """
     soup = BeautifulSoup(html, "html.parser")
 
     product_name = ""
@@ -439,8 +406,6 @@ def parse_flipkart(html: str) -> tuple:
         og = soup.find("meta", property="og:title")
         if og and og.get("content"):
             product_name = _clean(og["content"])
-            # Product-reviews pages duplicate the title as "<name> Reviews:
-            # Latest Review of <name> | Price in India | Flipkart.com".
             product_name = re.split(r"\s+Reviews:\s+Latest Review of", product_name)[0].strip()
     if not product_name:
         product_name = "Unknown product"
@@ -449,7 +414,15 @@ def parse_flipkart(html: str) -> tuple:
     if reviews:
         return product_name, reviews
 
-    # Known text containers, newest first.
+    # The fast text-pattern method found nothing. Before trying the much
+    # slower CSS-selector fallbacks below, check whether the product simply
+    # doesn't have enough ratings to have a written-review feed in the first
+    # place — if so, stop here rather than spending up to a minute walking a
+    # large page's DOM for something that was never going to be there.
+    ratings_count = flipkart_total_ratings_count(soup)
+    if ratings_count is not None and ratings_count < MIN_RATINGS_FOR_REVIEWS:
+        return product_name, []
+
     for sel in ("div.ZmyHeo div div", "div.ZmyHeo", "div.t-ZTKy div div", "div.t-ZTKy", "div.qwjRop div"):
         nodes = soup.select(sel)
         if len(nodes) >= 2:
@@ -486,7 +459,6 @@ def parse_flipkart(html: str) -> tuple:
             if reviews:
                 break
 
-    # Structural fallback: any div whose text mentions a verification badge.
     if not reviews:
         for div in soup.find_all("div"):
             blob = _clean(div.get_text(" "))
@@ -504,7 +476,6 @@ def parse_flipkart(html: str) -> tuple:
             if len(reviews) >= 10:
                 break
 
-    # Deduplicate on text, preserving order.
     seen, deduped = set(), []
     for r in reviews:
         key = r.text.lower()[:120]
@@ -516,23 +487,6 @@ def parse_flipkart(html: str) -> tuple:
     return product_name, deduped
 
 
-# --------------------------------------------------------------------------
-# Public entry point
-# --------------------------------------------------------------------------
-
-def _dump_debug_html(html: str, tag: str) -> Optional[str]:
-    if not DEBUG_DUMP:
-        return None
-    try:
-        os.makedirs(DEBUG_DIR, exist_ok=True)
-        path = os.path.join(DEBUG_DIR, f"{tag}_{int(time.time())}.html")
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(html)
-        return path
-    except OSError:
-        return None
-
-
 def scrape_product(url: str, max_reviews: int = 5) -> ProductPage:
     site = detect_site(url)
     if site == "unknown":
@@ -542,7 +496,7 @@ def scrape_product(url: str, max_reviews: int = 5) -> ProductPage:
 
     if is_short_link(url):
         url = resolve_short_link(url)
-        site = detect_site(url)   # re-check in case redirect changed the domain
+        site = detect_site(url)
 
     product_id = extract_product_id(url)
     if not product_id:
@@ -553,7 +507,6 @@ def scrape_product(url: str, max_reviews: int = 5) -> ProductPage:
         )
 
     if site == "amazon":
-        # The dedicated reviews page carries far more review HTML than the PDP.
         domain = re.search(r"https?://([^/]+)", url)
         host = domain.group(1) if domain else "www.amazon.in"
         review_url = f"https://{host}/product-reviews/{product_id}/?sortBy=recent&pageNumber=1"
