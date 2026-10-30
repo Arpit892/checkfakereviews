@@ -54,7 +54,7 @@ from analyze_live import analyze_reviews
 from scraper import ScrapeError, detect_site, scrape_product
 
 try:
-    from browser_scraper import PLAYWRIGHT_AVAILABLE, scrape_flipkart_via_browser
+    from browser_scraper import PLAYWRIGHT_AVAILABLE, scrape_via_browser
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
 
@@ -79,7 +79,7 @@ WORKER_TOKEN = _clean_env("WORKER_TOKEN")
 POLL_INTERVAL = float(_clean_env("POLL_INTERVAL", "5") or "5")
 MIN_GAP_SECONDS = float(_clean_env("MIN_GAP_SECONDS", "8") or "8")
 MAX_REVIEWS = int(_clean_env("MAX_REVIEWS", "5") or "5")
-USE_BROWSER_FOR_FLIPKART = _clean_env("USE_BROWSER_FOR_FLIPKART", "1") == "1"
+USE_BROWSER = _clean_env("USE_BROWSER", "1") == "1"
 
 _last_scrape = 0.0
 
@@ -95,8 +95,10 @@ def process(job: dict) -> dict:
     url = job["url"]
     site = detect_site(url)
     try:
-        if site == "flipkart" and USE_BROWSER_FOR_FLIPKART and PLAYWRIGHT_AVAILABLE:
-            page = scrape_flipkart_via_browser(url, max_reviews=MAX_REVIEWS)
+        if USE_BROWSER:
+            if not PLAYWRIGHT_AVAILABLE:
+                raise ScrapeError("BROWSER_MISSING", "Install requirements-worker.txt and run: python -m playwright install chromium")
+            page = scrape_via_browser(url, max_reviews=MAX_REVIEWS)
         else:
             page = scrape_product(url, max_reviews=MAX_REVIEWS)
 
@@ -133,8 +135,8 @@ def main():
     print(f"Worker started. Backend={BACKEND_URL}  poll={POLL_INTERVAL}s")
     print("Handles sites: all")
     print(
-        f"Flipkart via real browser: "
-        f"{'ON' if (USE_BROWSER_FOR_FLIPKART and PLAYWRIGHT_AVAILABLE) else 'OFF'}"
+        f"Amazon + Flipkart via PC browser: "
+        f"{'ON' if (USE_BROWSER and PLAYWRIGHT_AVAILABLE) else 'OFF'}"
         + ("" if PLAYWRIGHT_AVAILABLE else " (playwright not installed)")
     )
     idle_logged = False
@@ -148,6 +150,7 @@ def main():
             )
             if resp.status_code == 401:
                 raise SystemExit("Server rejected the worker token.")
+            resp.raise_for_status()
             data = resp.json()
 
             if not data or not data.get("job_id"):
@@ -161,11 +164,21 @@ def main():
             print(f"job {data['job_id']}: {data['url'][:70]}")
             result = process(data)
 
-            requests.post(
-                f"{BACKEND_URL}/api/worker/result",
-                json={"token": WORKER_TOKEN, "job_id": data["job_id"], "result": result},
-                timeout=30,
-            )
+            # Keep the result until Render confirms it was saved.
+            while True:
+                try:
+                    posted = requests.post(
+                        f"{BACKEND_URL}/api/worker/result",
+                        json={"token": WORKER_TOKEN, "job_id": data["job_id"], "result": result},
+                        timeout=30,
+                    )
+                    if posted.status_code == 401:
+                        raise SystemExit("Server rejected the worker token.")
+                    posted.raise_for_status()
+                    break
+                except requests.RequestException:
+                    print("  result upload failed; retrying in 5s...")
+                    time.sleep(5)
 
         except SystemExit:
             raise
