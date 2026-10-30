@@ -692,9 +692,9 @@
     const pasteSubmit = document.getElementById('paste-submit');
 
     // Polling config for jobs handed to the home worker (see remote_worker.py).
-    // ~40 attempts * 3s = 2 minutes before giving up.
+    // ~200 attempts * 3s = 10 minutes before giving up.
     const JOB_POLL_INTERVAL_MS = 3000;
-    const JOB_POLL_MAX_ATTEMPTS = 40;
+    const JOB_POLL_MAX_ATTEMPTS = 200;
  
     // Helper Functions
     function verdictClass(label) { 
