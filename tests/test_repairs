@@ -1,0 +1,31 @@
+import os, sqlite3, tempfile, time, unittest
+from review_targets import reviews_url, site_for_url
+from scraper import parse_flipkart
+
+class Repairs(unittest.TestCase):
+    def test_flipkart_product_link_becomes_reviews_page(self):
+        self.assertEqual(reviews_url("https://www.flipkart.com/apple-iphone/p/itmabc123?pid=MOBX1")[0],
+                         "https://www.flipkart.com/apple-iphone/product-reviews/itmabc123?pid=MOBX1")
+    def test_amazon_uses_recent_sort(self):
+        self.assertEqual(reviews_url("https://www.amazon.in/x/dp/B0CHX1W1XY")[0],
+                         "https://www.amazon.in/product-reviews/B0CHX1W1XY/?sortBy=recent&pageNumber=1")
+    def test_lookalike_domain_rejected(self):
+        self.assertEqual(site_for_url("https://amazon.in.evil.example/dp/B0CHX1W1XY"), "unknown")
+    def test_page_text_without_review_cards_gives_no_reviews(self):
+        self.assertEqual(parse_flipkart("<h1>Phone</h1><p>Great product Verified Purchase</p>")[1], [])
+    def test_flipkart_review_card_is_read(self):
+        html = '<h1>Phone</h1><div><div class="XQDdHH">5</div><div class="ZmyHeo">Battery lasts two days</div><p class="_2NsDsF">Ravi Kumar</p><p>Certified Buyer</p><p>2 days ago</p></div>'
+        r = parse_flipkart(html)[1]
+        self.assertEqual((r[0].reviewer_name, r[0].rating, r[0].verified, r[0].meta["date"]), ("Ravi Kumar", 5.0, True, "2 days ago"))
+    def test_stuck_job_is_requeued_after_5_minutes(self):
+        import storage
+        storage.SQLITE_PATH = os.path.join(tempfile.mkdtemp(), "t.db"); storage.init()
+        jid = storage.create_job("https://www.amazon.in/dp/B0CHX1W1XY")
+        self.assertEqual(storage.claim_next_job()["job_id"], jid)
+        self.assertIsNone(storage.claim_next_job())
+        with sqlite3.connect(storage.SQLITE_PATH) as c:
+            c.execute("UPDATE jobs SET updated_at=? WHERE job_id=?", (time.time() - 301, jid))
+        self.assertEqual(storage.claim_next_job()["job_id"], jid)
+
+if __name__ == "__main__":
+    unittest.main()
