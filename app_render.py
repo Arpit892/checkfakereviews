@@ -24,6 +24,7 @@ Environment variables:
 """
 
 import os
+import secrets
 import time
 
 from fastapi import BackgroundTasks, FastAPI
@@ -66,7 +67,7 @@ except Exception:  # noqa: BLE001
 app = FastAPI(title="Review Trust Checker")
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
-DEMO_FALLBACK = os.environ.get("DEMO_FALLBACK", "1") == "1"
+DEMO_FALLBACK = os.environ.get("DEMO_FALLBACK", "0") == "1"
 MAX_REVIEWS = int(os.environ.get("MAX_REVIEWS", "5"))
 
 _origins = [o.strip() for o in os.environ.get("ALLOW_ORIGINS", "*").split(",") if o.strip()]
@@ -88,6 +89,9 @@ class CheckRequest(BaseModel):
 
 
 BLOCK_HINTS = {
+    "BROWSER_REQUIRED": "Start remote_worker.py on your PC (see README_FIX.md).",
+    "BROWSER_MISSING": "Install requirements-worker.txt and Chromium on your PC.",
+    "SORT_UNAVAILABLE": "Could not select the latest reviews; no score was generated.",
     "BLOCKED": (
         "The store blocked this server's request. That's bot detection on the "
         "hosting provider's IP range, not a bug in the analyzer — set PROXY_URL "
@@ -142,7 +146,8 @@ def run_analysis(url: str) -> dict:
     # can consume 20 seconds.  That delay made the browser appear broken (or
     # hit the platform timeout) before the job was ever handed to the worker.
     # Queue immediately whenever a worker has checked in recently.
-    if worker_online():
+    # Always hand off to the PC worker when configured; Render's IP gets blocked.
+    if WORKER_TOKEN:
         job_id = storage.create_job(url)
         return {
             "status": "queued",
@@ -269,6 +274,8 @@ def check_async(payload: CheckRequest, background: BackgroundTasks):
     """
     if not payload.url or not payload.url.strip():
         return {"error": "Please provide a product URL."}
+    if WORKER_TOKEN:
+        return run_analysis(payload.url)
     job_id = storage.create_job(payload.url.strip())
 
     def _work(jid: str, url: str):
@@ -316,7 +323,7 @@ def analyze_html(payload: HtmlRequest):
 
 
 def _check_worker_auth(token: str) -> bool:
-    return bool(WORKER_TOKEN) and token == WORKER_TOKEN
+    return bool(WORKER_TOKEN) and secrets.compare_digest(token or "", WORKER_TOKEN)
 
 
 @app.get("/api/worker/next")
