@@ -202,6 +202,7 @@ def claim_next_job(max_age_seconds: int = 900) -> Optional[dict]:
     try:
         if _using_postgres():
             with _pg.connection() as conn:
+                conn.execute("UPDATE jobs SET status='queued' WHERE status='running' AND updated_at < %s", (now - 300,))
                 row = conn.execute(
                     """
                     UPDATE jobs SET status='running', updated_at=%s
@@ -218,6 +219,7 @@ def claim_next_job(max_age_seconds: int = 900) -> Optional[dict]:
                 return {"job_id": row[0], "url": row[1]} if row else None
 
         with _lock, sqlite3.connect(SQLITE_PATH) as conn:
+            conn.execute("UPDATE jobs SET status='queued' WHERE status='running' AND updated_at < ?", (now - 300,))
             row = conn.execute(
                 "SELECT job_id,url FROM jobs WHERE status='queued' AND created_at>? "
                 "ORDER BY created_at LIMIT 1",
@@ -229,7 +231,7 @@ def claim_next_job(max_age_seconds: int = 900) -> Optional[dict]:
                 "UPDATE jobs SET status='running', updated_at=? WHERE job_id=? AND status='queued'",
                 (now, row[0]),
             )
-            if conn.total_changes == 0:
+            if conn.execute('SELECT changes()').fetchone()[0] == 0:
                 return None
         return {"job_id": row[0], "url": row[1]}
     except Exception as e:  # noqa: BLE001
