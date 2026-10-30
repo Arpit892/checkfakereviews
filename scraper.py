@@ -11,13 +11,15 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 from urllib.parse import quote_plus
 
+from review_targets import is_short_url, reviews_url, site_for_url
+
 import requests
 from bs4 import BeautifulSoup
 
 SCRAPE_TIMEOUT = int(os.environ.get("SCRAPE_TIMEOUT", "20"))
 PROXY_URL = os.environ.get("PROXY_URL", "").strip()
 SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "").strip()
-DEBUG_DUMP = os.environ.get("DEBUG_DUMP", "1") == "1"
+DEBUG_DUMP = os.environ.get("DEBUG_DUMP", "0") == "1"
 DEBUG_DIR = os.environ.get("DEBUG_DIR", "debug_dumps")
 
 USER_AGENTS = [
@@ -65,21 +67,11 @@ class ProductPage:
 
 
 def detect_site(url: str) -> str:
-    low = url.lower()
-    if "amazon." in low or "amzn.in" in low or "amzn.to" in low or "a.co" in low:
-        return "amazon"
-    if "flipkart." in low or "fkrt." in low or "dl.flipkart.com" in low:
-        return "flipkart"
-    return "unknown"
+    return site_for_url(url)
 
 
 def is_short_link(url: str) -> bool:
-    low = url.lower()
-    if any(d in low for d in ("amzn.in", "amzn.to", "a.co", "fkrt.", "dl.flipkart.com")):
-        return True
-    if "flipkart.com" in low and re.search(r"/s/[A-Za-z0-9]+", url):
-        return True
-    return False
+    return is_short_url(url)
 
 
 def proxy_mode() -> str:
@@ -162,7 +154,7 @@ def fetch_html(url: str, retries: int = 2) -> str:
         try:
             if SCRAPERAPI_KEY:
                 target = (
-                    "http://api.scraperapi.com/"
+                    "https://api.scraperapi.com/"
                     f"?api_key={SCRAPERAPI_KEY}&country_code=in&url={quote_plus(url)}"
                 )
                 resp = requests.get(target, timeout=SCRAPE_TIMEOUT + 40)
@@ -254,7 +246,7 @@ def extract_product_id(url: str) -> Optional[str]:
         return m.group(1).upper() if m else None
 
     if site == "flipkart":
-        m = re.search(r"/p/(itm[A-Za-z0-9]+)", url)
+        m = re.search(r"/(?:p|product-reviews)/(itm[A-Za-z0-9]+)", url)
         if m:
             return m.group(1)
         m = re.search(r"[?&]pid=([A-Za-z0-9]+)", url)
@@ -417,97 +409,45 @@ def flipkart_total_ratings_count(soup: BeautifulSoup) -> Optional[int]:
 
 
 def parse_flipkart(html: str) -> tuple:
+    """Read only real review cards; never guess reviews from the whole page text."""
     soup = BeautifulSoup(html, "html.parser")
-
-    product_name = ""
-    for sel in ("span.VU-ZEz", "span.B_NuCI", "h1 span", "h1"):
-        el = soup.select_one(sel)
-        if el and _clean(el.get_text()):
-            product_name = _clean(el.get_text())
-            break
-    if not product_name:
-        og = soup.find("meta", property="og:title")
-        if og and og.get("content"):
-            product_name = _clean(og["content"])
-            product_name = re.split(r"\s+Reviews:\s+Latest Review of", product_name)[0].strip()
-    if not product_name:
-        product_name = "Unknown product"
-
-    reviews = _parse_flipkart_reviews_from_text(soup)
-    if reviews:
-        return product_name, reviews
-
-    # The fast text-pattern method found nothing. Before trying the much
-    # slower CSS-selector fallbacks below, check whether the product simply
-    # doesn't have enough ratings to have a written-review feed in the first
-    # place — if so, stop here rather than spending up to a minute walking a
-    # large page's DOM for something that was never going to be there.
-    ratings_count = flipkart_total_ratings_count(soup)
-    if ratings_count is not None and ratings_count < MIN_RATINGS_FOR_REVIEWS:
-        return product_name, []
-
-    for sel in ("div.ZmyHeo div div", "div.ZmyHeo", "div.t-ZTKy div div", "div.t-ZTKy", "div.qwjRop div"):
-        nodes = soup.select(sel)
-        if len(nodes) >= 2:
-            for n in nodes:
-                text = _clean(n.get_text(" "))
-                text = re.sub(r"\s*(READ MORE|\.\.\.more)\s*$", "", text, flags=re.I)
-                if len(text) < 4:
-                    continue
-                container = n.find_parent("div")
-                name = "Flipkart Customer"
-                rating = None
-                verified = False
-                hop = container
-                for _ in range(5):
-                    if hop is None:
-                        break
-                    for cand in ("p._2NsDsF", "p._2sc7ZR", "p.AwS1CA"):
-                        nm = hop.select_one(cand)
-                        if nm and _clean(nm.get_text()):
-                            name = _clean(nm.get_text())
-                            break
-                    blob = hop.get_text(" ")
-                    if "Certified Buyer" in blob or "Verified Purchase" in blob:
-                        verified = True
-                    rm = re.search(r"\b([1-5])\s*★", blob) or re.search(r"^\s*([1-5])\b", blob)
-                    if rm and rating is None:
-                        rating = float(rm.group(1))
-                    if name != "Flipkart Customer":
-                        break
-                    hop = hop.parent
-                reviews.append(
-                    Review(reviewer_name=name, text=text, rating=rating, verified=verified)
-                )
-            if reviews:
+    title = soup.select_one("h1") or soup.select_one("span.VU-ZEz, span.B_NuCI")
+    og = soup.find("meta", property="og:title")
+    name = _clean(title.get_text(" ")) if title else (_clean(og.get("content", "")) if og else "")
+    if not name and soup.title:
+        name = _clean(soup.title.get_text())
+    name = re.split(r"\s+Reviews?:|\s+Reviews? of|\s+Buy Online", name, flags=re.I)[0] or "Unknown product"
+    body_sel = "div.ZmyHeo, div.t-ZTKy, div.qwjRop"
+    author_sel = "p._2sc7ZR, p._2NsDsF, p.AwS1CA"
+    reviews, seen = [], set()
+    for body in soup.select(body_sel):
+        text = re.sub(r"\s*(READ MORE|READ LESS|\.\.\.more)\s*$", "", _clean(body.get_text(" ")), flags=re.I)
+        if not text:
+            continue
+        card, author = body.parent, None
+        for _ in range(6):
+            if card is None or len(card.select(body_sel)) > 1:
+                card = None
                 break
-
-    if not reviews:
-        for div in soup.find_all("div"):
-            blob = _clean(div.get_text(" "))
-            badge = "Certified Buyer" if "Certified Buyer" in blob else (
-                "Verified Purchase" if "Verified Purchase" in blob else None
-            )
-            if not badge or len(blob) > 600 or len(blob) < 30:
-                continue
-            body = re.split(badge, blob)[0]
-            body = re.sub(r"^\s*[1-5]\s*", "", body)
-            body = re.sub(r"\s*(READ MORE)\s*$", "", body, flags=re.I)
-            if len(body) < 8:
-                continue
-            reviews.append(Review(reviewer_name="Flipkart Customer", text=_clean(body), verified=True))
-            if len(reviews) >= 10:
+            author = card.select_one(author_sel)
+            if author:
                 break
-
-    seen, deduped = set(), []
-    for r in reviews:
-        key = r.text.lower()[:120]
+            card = card.parent
+        if card is None or author is None or not _clean(author.get_text()):
+            continue
+        who = _clean(author.get_text(" "))
+        blob = card.get_text(" ", strip=True)
+        rating_el = card.select_one("div.XQDdHH, div._3LWZlK, div._1BLPMq")
+        m = re.match(r"^([1-5](?:\.\d)?)$", _clean(rating_el.get_text())) if rating_el else None
+        date = re.search(r"\b(?:\d+\s+(?:hours?|days?|months?|years?)\s+ago|Today|Yesterday|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*,?\s+\d{4})", blob, re.I)
+        key = (who.lower(), text.lower())
         if key in seen:
             continue
         seen.add(key)
-        deduped.append(r)
-
-    return product_name, deduped
+        reviews.append(Review(who, text, float(m.group(1)) if m else None,
+                              bool(re.search(r"Certified Buyer|Verified Purchase", blob, re.I)),
+                              {"date": date.group(0) if date else ""}))
+    return name, reviews
 
 
 def scrape_product(url: str, max_reviews: int = 5) -> ProductPage:
@@ -529,20 +469,14 @@ def scrape_product(url: str, max_reviews: int = 5) -> ProductPage:
             "Flipkart links need /p/itm... or ?pid=...",
         )
 
-    if site == "amazon":
-        domain = re.search(r"https?://([^/]+)", url)
-        host = domain.group(1) if domain else "www.amazon.in"
-        review_url = f"https://{host}/product-reviews/{product_id}/?sortBy=recent&pageNumber=1"
-        html = fetch_html(review_url)
-        product_name, reviews = parse_amazon(html)
-        if not reviews:
-            html = fetch_html(f"https://{host}/dp/{product_id}")
-            product_name, reviews = parse_amazon(html)
-        source = review_url
-    else:
-        source = url
-        html = fetch_html(url)
-        product_name, reviews = parse_flipkart(html)
+    try:
+        source, product_id = reviews_url(url)
+    except ValueError as exc:
+        raise ScrapeError("INVALID_URL", str(exc)) from exc
+    if site == "flipkart":
+        raise ScrapeError("BROWSER_REQUIRED", "Flipkart needs the PC browser worker (remote_worker.py) to open the reviews page and select Latest.")
+    html = fetch_html(source)
+    product_name, reviews = parse_amazon(html)
 
     if not reviews:
         dump_path = _dump_debug_html(html, f"{site}_{product_id}")
