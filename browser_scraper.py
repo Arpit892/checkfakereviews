@@ -8,6 +8,7 @@ import os
 import re
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from review_targets import reviews_url, site_for_url
 from scraper import ProductPage, ScrapeError, parse_amazon, parse_flipkart
@@ -32,11 +33,60 @@ def _blocked(page) -> bool:
         body = page.locator("body").inner_text(timeout=5000)
     except Exception:  # noqa: BLE001
         return False
-    return bool(BLOCK_TEXT.search(body) or BLOCK_CODE.search(body)) or "/ap/signin" in page.url
+    return bool(BLOCK_TEXT.search(body) or BLOCK_CODE.search(body))
+
+
+FK_BLOCK_START = re.compile(r"^([1-5])\.0$")
+FK_DATE = re.compile(r"^·?\s*(\d+\s+(?:hours?|days?|weeks?|months?|years?)\s+ago|Today|Yesterday|[A-Za-z]{3,9},?\s+\d{4})$", re.I)
+
+
+def parse_flipkart_text(text: str):
+    """Read Flipkart reviews from the visible page text (class names change too often).
+
+    Each review on the page looks like:
+      5.0 / • / Title / [Review for: ...] / review text... / Name / , City / Helpful.. / [Verified Purchase] / · 3 days ago
+    """
+    from scraper import Review
+
+    lines = [l.strip() for l in text.replace("&rsquo;", "'").splitlines() if l.strip()]
+    reviews, i = [], 0
+    while i < len(lines) - 4:
+        m = FK_BLOCK_START.match(lines[i])
+        if not (m and lines[i + 1] == "•"):
+            i += 1
+            continue
+        # find the date line that ends this review (within 40 lines)
+        end = next((j for j in range(i + 2, min(i + 40, len(lines))) if FK_DATE.match(lines[j])), None)
+        if end is None:
+            i += 1
+            continue
+        block = lines[i + 2:end]
+        title = block[0] if block else ""
+        # author is the line just before a ", City" line
+        city_idx = next((k for k, l in enumerate(block) if l.startswith(",")), None)
+        if city_idx is None or city_idx < 2:
+            i = end + 1
+            continue
+        author = block[city_idx - 1]
+        body = [l for l in block[1:city_idx - 1] if not l.startswith("Review for:")]
+        body_text = re.sub(r"\s*(READ MORE|\.\.\.\s*more)$", "", " ".join(body), flags=re.I).strip() or title
+        verified = any(l in ("Verified Purchase", "Certified Buyer") for l in block[city_idx:])
+        date = FK_DATE.match(lines[end]).group(1)
+        reviews.append(Review(author, body_text, float(m.group(1)), verified, {"date": date, "title": title}))
+        i = end + 1
+    return reviews
 
 
 def _read(page, site):
-    return (parse_amazon if site == "amazon" else parse_flipkart)(page.content())
+    name, reviews = (parse_amazon if site == "amazon" else parse_flipkart)(page.content())
+    if site == "flipkart" and not reviews:
+        try:
+            reviews = parse_flipkart_text(page.locator("body").inner_text(timeout=5000))
+        except Exception:  # noqa: BLE001
+            reviews = []
+        if not name or name == "Unknown product":
+            name = re.split(r"\s+Reviews?\b|\s*[-|:]\s*Flipkart", page.title(), flags=re.I)[0].strip() or "Unknown product"
+    return name, reviews
 
 
 def _wait_for_reviews(page, site, headless):
@@ -102,6 +152,16 @@ def scrape_via_browser(url: str, max_reviews: int = 5) -> ProductPage:
                 raise ScrapeError("INVALID_URL", str(exc)) from exc
 
             page.goto(target, wait_until="domcontentloaded", timeout=45000)
+            if site == "amazon" and "/ap/signin" in page.url:
+                # Amazon now hides the full reviews page behind sign-in. Read the
+                # reviews shown on the product page instead (no login needed).
+                print("  Amazon wants sign-in for the reviews page; reading the product page reviews instead.")
+                host = urlsplit(target).hostname
+                page.goto(f"https://{host}/dp/{product_id}", wait_until="domcontentloaded", timeout=45000)
+                try:
+                    page.locator('[data-hook="review"]').first.scroll_into_view_if_needed(timeout=8000)
+                except Exception:  # noqa: BLE001
+                    pass
             _wait_for_reviews(page, site, headless)
 
             if site == "flipkart":
@@ -118,7 +178,7 @@ def scrape_via_browser(url: str, max_reviews: int = 5) -> ProductPage:
                         "Could not switch Flipkart to Latest reviews, so no score was generated.",
                     ) from exc
 
-            for more in page.get_by_text("READ MORE", exact=True).all()[:max_reviews]:
+            for more in page.get_by_text(re.compile(r"^read more$", re.I)).all()[:max_reviews]:
                 try:
                     more.click(timeout=1000)
                 except Exception:  # noqa: BLE001
