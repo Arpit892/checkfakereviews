@@ -35,3 +35,7 @@ Leave the browser window visible the first time; if Amazon asks you to sign in o
 Run tests: `python -m unittest discover -s tests`
 
 Limits: stores can still block or change their pages; when that happens the site shows an error instead of a fake score.
+
+## Update v2
+- Flipkart changed its page layout, so reviews couldn't be read. `browser_scraper.py` now reads reviews from the visible page text (works with the new layout; tested live).
+- Amazon now asks for sign-in on its full reviews page. The scraper automatically falls back to the reviews shown on the product page (no login). Optional: sign in once in the opened browser window to get the "most recent" list; the login is remembered on your PC.
