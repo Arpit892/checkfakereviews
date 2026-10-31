@@ -17,6 +17,14 @@ class Repairs(unittest.TestCase):
         html = '<h1>Phone</h1><div><div class="XQDdHH">5</div><div class="ZmyHeo">Battery lasts two days</div><p class="_2NsDsF">Ravi Kumar</p><p>Certified Buyer</p><p>2 days ago</p></div>'
         r = parse_flipkart(html)[1]
         self.assertEqual((r[0].reviewer_name, r[0].rating, r[0].verified, r[0].meta["date"]), ("Ravi Kumar", 5.0, True, "2 days ago"))
+    def test_flipkart_new_layout_text_is_read(self):
+        from browser_scraper import parse_flipkart_text
+        txt = open(os.path.join(os.path.dirname(__file__), "flipkart_sample.txt")).read()
+        r = parse_flipkart_text(txt)
+        self.assertEqual(len(r), 10)
+        self.assertEqual((r[0].reviewer_name, r[0].rating, r[0].verified, r[0].meta["date"]), ("Solanki Vrunda", 5.0, True, "3 days ago"))
+        self.assertEqual(r[2].reviewer_name, "Flipkart Customer")
+        self.assertEqual(r[1].rating, 1.0)
     def test_stuck_job_is_requeued_after_5_minutes(self):
         import storage
         storage.SQLITE_PATH = os.path.join(tempfile.mkdtemp(), "t.db"); storage.init()
