@@ -6,7 +6,6 @@ beautifulsoup4>=4.12
 gunicorn>=21.2.0
 uvicorn
 
-# Optional: Postgres-backed cache (Neon / Supabase / Railway).
 # Uncomment both lines when set DATABASE_URL.
 psycopg[binary]>=3.1
 psycopg-pool>=3.2
