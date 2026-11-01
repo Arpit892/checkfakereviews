@@ -1,9 +1,4 @@
-"""Local PC browser scraper for Amazon and Flipkart reviews.
 
-It does NOT bypass CAPTCHAs. If the store asks for verification, you can
-complete it yourself in the open browser window on your PC.
-The browser profile stays on your PC; never upload it or commit it to GitHub.
-"""
 import os
 import re
 import time
