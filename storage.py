@@ -1,19 +1,4 @@
-"""
-storage.py
-Caches finished analyses and tracks background jobs.
 
-Backends:
-    * SQLite (default) — zero setup, but Render's free tier has an EPHEMERAL
-      filesystem: the disk is wiped on every deploy AND every cold start after
-      the service spins down. Fine for short-lived caching, useless for history.
-    * Postgres — set DATABASE_URL (Neon, Supabase, Railway all have free tiers)
-      and install psycopg[binary]. This is the "host the database somewhere
-      online" piece, and it's what makes the cache actually survive restarts.
-
-Caching matters more than it sounds: a cache hit skips the scrape entirely,
-which means fewer requests to Amazon/Flipkart, which means fewer chances to
-get your IP blocked.
-"""
 
 import json
 import os
