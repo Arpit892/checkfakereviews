@@ -1,48 +1,4 @@
-"""
-remote_worker.py
-Run this on YOUR machine (laptop, home PC, Raspberry Pi). It polls your Render
-backend for scrape jobs, does the scraping from your home IP — the one that
-already works — and posts the results back.
 
-This is the free way around the CAPTCHA/IP-block. Render never talks to
-Amazon or Flipkart directly for jobs it hands off; it only holds the queue
-and the results. Your IP does the fetching.
-
-Setup:
-    1. On Render, set an env var:   WORKER_TOKEN=<some long random string>
-    2. On your machine (PowerShell — use $env:, NOT `set`, which leaves
-       literal quote characters in the value and breaks the URL):
-           pip install requests beautifulsoup4
-           $env:BACKEND_URL="https://checkfakereviews.online"
-           $env:WORKER_TOKEN="<the same string>"
-           python remote_worker.py
-
-    Optional, for Flipkart: Flipkart's block is a real reCAPTCHA challenge,
-    not just IP reputation, so plain requests almost never get through, even
-    from a home IP. A real headless browser has a better (not guaranteed)
-    chance:
-           pip install playwright
-           playwright install chromium
-    With that installed, Flipkart jobs automatically use the browser path.
-    Without it, they fall back to the plain scraper, which will likely fail
-    with BLOCKED — that's expected, not a bug.
-
-Keep it running. /api/health on the server will show "worker_online": true.
-When no worker is online, the server falls back to trying directly from its
-own IP (and usually failing) or returns a clear error.
-
-Caveats, stated plainly:
-    * Your site only analyzes new products while this process is running.
-      Closing this terminal (or restarting your computer) stops it — it is
-      not a background service.
-    * Your home IP is now doing the scraping for every visitor. If the site
-      gets real traffic, Amazon will eventually rate-limit your home
-      connection too. Throttle with POLL_INTERVAL and MIN_GAP_SECONDS.
-    * Flipkart is not guaranteed to work even with Playwright — reCAPTCHA
-      Enterprise is specifically built to detect headless automation too.
-      The paste-HTML option on the site remains the reliable fallback.
-    * This is fine for a portfolio/demo project. It is not a scaling plan.
-"""
 
 import os
 import time
