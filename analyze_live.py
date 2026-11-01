@@ -1,26 +1,4 @@
-"""
-analyze_live.py
-Scores scraped reviews and produces the SAME output schema as demo_data.py,
-so the existing frontend keeps working unchanged.
 
-Why this doesn't just import your local GPT-2 pipeline:
-    GPT-2 small needs ~600MB-1.2GB resident once torch is loaded. Render's
-    free tier gives you 512MB. Loading it there will OOM-kill the worker
-    mid-request, which looks to the user like a random 502.
-
-So there are two scoring backends:
-    * "heuristic" (default) - pure-Python signals, ~1ms per review, no model.
-    * "gpt2" (opt-in via USE_GPT2=1) - real perplexity, for when you run this
-      locally or on a paid instance with >=2GB RAM. Falls back to heuristic
-      automatically if torch/transformers aren't importable.
-
-Score conventions (all 0..1, higher = more trustworthy):
-    ai_human_likeness_score  1.0 = reads like a real person, 0.0 = machine-written
-    spam_genuineness_score   1.0 = genuine buyer, 0.0 = spam / incentivised
-    uniqueness_score         1.0 = original, 0.0 = duplicated from other reviews
-    review_score             weighted blend; heavily penalised on AI leftovers
-    trust_score              mean(review_score) * 100, rounded
-"""
 
 import math
 import os
