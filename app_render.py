@@ -1,27 +1,4 @@
-"""
-app_render.py
-Backend for checkfakereviews.online.
 
-What changed from the previous version: the hosted build no longer refuses
-unknown products. /api/check now runs the real pipeline — scrape the product
-page, parse the 5 most recent reviews, score each one — for ANY Amazon.in or
-Flipkart URL. The three precomputed products are kept only as a fallback for
-when a live scrape is blocked, so the demo never hard-fails.
-
-Response shape is unchanged, so the existing static/index.html keeps working.
-
-Deploy (Render):
-    Build:  pip install -r requirements.txt
-    Start:  uvicorn app_render:app --host 0.0.0.0 --port $PORT
-
-Environment variables:
-    ALLOW_ORIGINS     comma-separated origins for a Vercel-hosted frontend,
-                      e.g. https://checkfakereviews.online,https://cfr.vercel.app
-    SCRAPERAPI_KEY    or PROXY_URL — strongly recommended, see scraper.py
-    DATABASE_URL      Postgres for a cache that survives restarts
-    DEMO_FALLBACK     "1" (default) to serve precomputed data when blocked
-    USE_GPT2          "1" to use real GPT-2 perplexity (needs >=2GB RAM)
-"""
 
 import os
 import secrets
