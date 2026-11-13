@@ -234,7 +234,8 @@
       font-size: 14px; 
     }
 
-    /* Notice: soft, non-error informational line  */
+    /* Notice: soft, non-error informational line (e.g. "showing a cached/demo
+       result because the live scrape was blocked"). Reuses .hint styling. */
     #notice-box {
       display: none;
       margin-top: 12px;
@@ -568,6 +569,27 @@
       .stamp { min-height: 190px; }
       .steps, #exhibit-list { grid-template-columns: 1fr; }
     }
+    .extra-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:24px; margin-top:28px; }
+    .extra-card h3 { margin:6px 0 4px; font-size:24px; }
+    .two-inputs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0 12px; }
+    .two-inputs input { width:100%; padding:14px; font-size:16px; border:1px solid var(--line); border-radius:12px; background:var(--cream); color:var(--ink); }
+    .cmp-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+    .cmp-col { border:1px solid var(--line); border-radius:14px; padding:16px; }
+    .cmp-col .name { font-weight:600; font-size:15px; margin-bottom:8px; }
+    .cmp-col .big { font-size:34px; font-weight:800; }
+    .pc { margin-top:12px; font-size:14px; }
+    .pc h4 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; margin:10px 0 4px; }
+    .pc .good h4 { color:var(--genuine, #2e7d32); } .pc .bad h4 { color:var(--fake, #c62828); }
+    .pc ul { margin:0; padding-left:18px; } .pc li { margin:4px 0; }
+    .pc .q { display:block; color:var(--muted, #666); font-size:12.5px; font-style:italic; }
+    .cmp-col .row { display:flex; justify-content:space-between; padding:6px 0; border-top:1px solid var(--line); font-size:14px; }
+    .cmp-winner { font-weight:700; color:var(--green); }
+    .tg-btn { display:block; text-align:center; margin-top:10px; padding:16px; border-radius:12px; background:#229ED9; color:#fff; font-weight:700; text-decoration:none; font-size:17px; }
+    @media (max-width:700px) {
+      .two-inputs, .cmp-grid { grid-template-columns:1fr; }
+      .extra-card { padding:18px; }
+      .extra-card .submit-btn { width:100%; }
+    }
   </style>
 </head>
  
@@ -642,6 +664,35 @@
         <div id="exhibit-list"></div>
       </div>
  
+      <!-- ============ Compare two products ============ -->
+      <section class="extra-card" id="compare">
+        <div class="eyebrow">Compare</div>
+        <h3>Compare two products</h3>
+        <p class="hint">Paste two Amazon or Flipkart links. We scan both at the same time and show trust score, price, and the good and bad points buyers mention.</p>
+        <div class="two-inputs">
+          <input type="url" id="cmp-a" placeholder="First product link" />
+          <input type="url" id="cmp-b" placeholder="Second product link" />
+        </div>
+        <button class="submit-btn" id="cmp-btn">Compare</button>
+        <p class="hint" id="cmp-status"></p>
+        <div class="cmp-grid" id="cmp-grid"></div>
+        <p class="cmp-winner" id="cmp-winner"></p>
+      </section>
+
+      <!-- ============ Telegram price-drop alert ============ -->
+      <section class="extra-card" id="alerts">
+        <div class="eyebrow">Price drop alert</div>
+        <h3>Get a Telegram message when the price drops</h3>
+        <p class="hint">We check the price every 6 hours. Leave the target empty to be told about any drop.</p>
+        <div class="two-inputs">
+          <input type="url" id="al-url" placeholder="Product link" />
+          <input type="number" id="al-target" inputmode="numeric" min="1" placeholder="Target price in ₹ (optional)" />
+        </div>
+        <button class="submit-btn" id="al-btn">Create alert</button>
+        <p class="hint" id="al-status"></p>
+        <a class="tg-btn" id="al-link" target="_blank" rel="noopener" style="display:none">Open Telegram to turn on alert</a>
+      </section>
+
       <section class="how">
         <div>
           <div class="eyebrow">Simple by design</div>
@@ -814,6 +865,19 @@
     }
  
     // Report Display Logic
+    function escHtml(s) { return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+    function insightsHtml(ins) {
+      if (!ins) return '';
+      const li = (x) => `<li><b>${escHtml(x.topic)}</b> (${x.mentions} mention${x.mentions > 1 ? 's' : ''})<span class="q">&ldquo;${escHtml(x.quote)}&rdquo;</span></li>`;
+      const good = ins.pros && ins.pros.length ? ins.pros.map(li).join('') : '<li>No clear praise in recent reviews.</li>';
+      const bad = ins.cons && ins.cons.length ? ins.cons.map(li).join('') : '<li>No repeated complaints in recent reviews.</li>';
+      const claims = ins.claims && ins.claims.length
+        ? `<div><h4>What the seller says</h4><ul>${ins.claims.map(c => `<li>${escHtml(c)}</li>`).join('')}</ul></div>` : '';
+      return `<div class="pc"><div class="good"><h4>👍 Good things buyers mention</h4><ul>${good}</ul></div>
+        <div class="bad"><h4>👎 Bad things buyers mention</h4><ul>${bad}</ul></div>${claims}</div>`;
+    }
+    window.insightsHtml = insightsHtml;
+
     function renderReport(data) {
       const vClass = verdictClass(data.label); 
       stamp.className = 'stamp ' + vClass; 
@@ -854,6 +918,9 @@
         exhibitList.appendChild(div); 
       }); 
  
+      let box = document.getElementById('insights-box');
+      if (!box) { box = document.createElement('div'); box.id = 'insights-box'; exhibitList.parentNode.insertBefore(box, exhibitList.previousElementSibling); }
+      box.innerHTML = insightsHtml(data.insights);
       reportCard.classList.add('visible');
     }
  
@@ -920,6 +987,74 @@
         pasteSubmit.textContent = 'Analyze pasted HTML';
       }
     }
+  </script>
+  <script>
+  // ---------- Compare two products + Telegram price alert ----------
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const rupees = (v) => v == null ? 'Not found' : '₹' + Number(v).toLocaleString('en-IN');
+    const esc = (s) => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+    async function checkOne(url) {
+      const res = await fetch('/api/check', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url }) });
+      let data = await res.json();
+      if (data.status === 'queued' && data.job_id) data = await pollJob(data.job_id);
+      return data;
+    }
+
+    function col(d) {
+      if (d.error) return `<div class="cmp-col"><div class="name">Couldn't check this one</div><p class="hint">${esc(d.error)}</p></div>`;
+      const avg = d.per_review && d.per_review.length
+        ? (d.per_review.reduce((s, r) => s + (r.rating || 0), 0) / d.per_review.length).toFixed(1) : '–';
+      return `<div class="cmp-col"><div class="name">${esc(d.product_name)}</div>
+        <div class="big" style="color:var(--${verdictClass(d.label)})">${d.trust_score}/100</div>
+        <div class="row"><span>Verdict</span><b>${esc(d.label)}</b></div>
+        <div class="row"><span>Price</span><b>${rupees(d.price)}</b></div>
+        <div class="row"><span>Avg. recent rating</span><b>${avg} ★</b></div>
+        <div class="row"><span>Store</span><b>${esc(d.site)}</b></div>
+        ${window.insightsHtml ? window.insightsHtml(d.insights) : ''}</div>`;
+    }
+
+    $('cmp-btn').addEventListener('click', async () => {
+      const a = $('cmp-a').value.trim(), b = $('cmp-b').value.trim();
+      if (!a || !b) { $('cmp-status').textContent = 'Paste both product links first.'; return; }
+      $('cmp-btn').disabled = true; $('cmp-grid').innerHTML = ''; $('cmp-winner').textContent = '';
+      $('cmp-status').textContent = 'Scanning both products at the same time… usually under a minute.';
+      try {
+        const [da, db] = await Promise.all([checkOne(a), checkOne(b)]);
+        $('cmp-grid').innerHTML = col(da) + col(db);
+        $('cmp-status').textContent = '';
+        if (!da.error && !db.error) {
+          const trust = da.trust_score === db.trust_score ? null : (da.trust_score > db.trust_score ? da : db);
+          let msg = trust ? `More trustworthy reviews: ${trust.product_name}.` : 'Both have similar review trust.';
+          if (da.price && db.price && da.price !== db.price) msg += ` Cheaper: ${(da.price < db.price ? da : db).product_name}.`;
+          $('cmp-winner').textContent = msg;
+        }
+      } catch (e) { $('cmp-status').textContent = 'Could not reach the server: ' + e.message; }
+      finally { $('cmp-btn').disabled = false; }
+    });
+
+    $('al-btn').addEventListener('click', async () => {
+      const url = $('al-url').value.trim(), t = $('al-target').value.trim();
+      $('al-link').style.display = 'none';
+      if (!url) { $('al-status').textContent = 'Paste a product link first.'; return; }
+      $('al-btn').disabled = true; $('al-status').textContent = 'Creating alert…';
+      try {
+        const res = await fetch('/api/alerts', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ url, target_price: t ? Number(t) : null }) });
+        const d = await res.json();
+        if (d.error) { $('al-status').textContent = d.error; return; }
+        $('al-link').href = d.telegram_link; $('al-link').style.display = 'block';
+        $('al-status').textContent = 'Almost done: tap the button, then press START in Telegram.';
+        for (let i = 0; i < 60; i++) {          // wait up to ~5 min for the tap
+          await new Promise(r => setTimeout(r, 5000));
+          const s = await (await fetch('/api/alerts/' + d.alert_id)).json();
+          if (s.linked) { $('al-status').textContent = '✅ Alert is on. You will get a Telegram message when the price drops.'; $('al-link').style.display = 'none'; break; }
+        }
+      } catch (e) { $('al-status').textContent = 'Could not reach the server: ' + e.message; }
+      finally { $('al-btn').disabled = false; }
+    });
+  })();
   </script>
 </body>
 </html>
