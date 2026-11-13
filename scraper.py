@@ -64,6 +64,8 @@ class ProductPage:
     product_name: str
     reviews: List[Review]
     source_url: str
+    price: Optional[float] = None
+    description: List[str] = field(default_factory=list)
 
 
 def detect_site(url: str) -> str:
