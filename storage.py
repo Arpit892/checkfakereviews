@@ -1,4 +1,19 @@
+"""
+storage.py
+Caches finished analyses and tracks background jobs.
 
+Backends:
+    * SQLite (default) — zero setup, but Render's free tier has an EPHEMERAL
+      filesystem: the disk is wiped on every deploy AND every cold start after
+      the service spins down. Fine for short-lived caching, useless for history.
+    * Postgres — set DATABASE_URL (Neon, Supabase, Railway all have free tiers)
+      and install psycopg[binary]. This is the "host the database somewhere
+      online" piece, and it's what makes the cache actually survive restarts.
+
+Caching matters more than it sounds: a cache hit skips the scrape entirely,
+which means fewer requests to Amazon/Flipkart, which means fewer chances to
+get your IP blocked.
+"""
 
 import json
 import os
@@ -265,3 +280,89 @@ def get_job(job_id: str) -> Optional[dict]:
     except Exception as e:  # noqa: BLE001
         print(f"[storage] job read failed: {e}")
         return None
+
+
+# ----------------------------- price alerts --------------------------------
+# One row per (product, Telegram chat). chat_id stays NULL until the visitor
+# taps the Telegram link and the bot receives "/start <link_code>".
+
+import secrets as _secrets
+
+ALERT_COLUMNS = "alert_id,link_code,chat_id,url,site,product_name,target_price,last_price,last_checked,active,created_at"
+
+
+def _q(sql: str, params=(), fetch: str = ""):
+    """Run SQL on Postgres or SQLite. Write SQL with '?' placeholders."""
+    if _using_postgres():
+        with _pg.connection() as conn:
+            cur = conn.execute(sql.replace("?", "%s"), params)
+            return cur.fetchone() if fetch == "one" else cur.fetchall() if fetch == "all" else None
+    with _lock, sqlite3.connect(SQLITE_PATH) as conn:
+        cur = conn.execute(sql, params)
+        return cur.fetchone() if fetch == "one" else cur.fetchall() if fetch == "all" else None
+
+
+def init_alerts():
+    _q("""
+        CREATE TABLE IF NOT EXISTS price_alerts (
+            alert_id TEXT PRIMARY KEY, link_code TEXT UNIQUE NOT NULL, chat_id TEXT,
+            url TEXT NOT NULL, site TEXT, product_name TEXT,
+            target_price DOUBLE PRECISION, last_price DOUBLE PRECISION,
+            last_checked DOUBLE PRECISION NOT NULL DEFAULT 0,
+            active INTEGER NOT NULL DEFAULT 1, created_at DOUBLE PRECISION NOT NULL
+        )""")
+
+
+def _alert_row(row) -> Optional[dict]:
+    if not row:
+        return None
+    d = dict(zip(ALERT_COLUMNS.split(","), row))
+    d["active"] = bool(d["active"])
+    return d
+
+
+def create_alert(url, site, target_price=None, product_name="", current_price=None) -> dict:
+    alert_id = uuid.uuid4().hex[:16]
+    code = _secrets.token_hex(8)
+    _q(f"INSERT INTO price_alerts ({ALERT_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+       (alert_id, code, None, url, site, product_name, target_price, current_price, 0, 1, time.time()))
+    return get_alert(alert_id)
+
+
+def get_alert(alert_id: str) -> Optional[dict]:
+    return _alert_row(_q(f"SELECT {ALERT_COLUMNS} FROM price_alerts WHERE alert_id=?", (alert_id,), "one"))
+
+
+def link_alert(code: str, chat_id) -> Optional[dict]:
+    a = _alert_row(_q(f"SELECT {ALERT_COLUMNS} FROM price_alerts WHERE link_code=?", (code,), "one"))
+    if not a or (a["chat_id"] and a["chat_id"] != str(chat_id)):
+        return None  # unknown code, or already claimed by another Telegram account
+    _q("UPDATE price_alerts SET chat_id=?, active=1 WHERE alert_id=?", (str(chat_id), a["alert_id"]))
+    return get_alert(a["alert_id"])
+
+
+def due_alerts(every_seconds: int, limit: int = 50) -> list:
+    rows = _q(f"SELECT {ALERT_COLUMNS} FROM price_alerts WHERE active=1 AND chat_id IS NOT NULL "
+              "AND last_checked < ? ORDER BY last_checked LIMIT ?", (time.time() - every_seconds, limit), "all")
+    return [_alert_row(r) for r in rows or []]
+
+
+def record_price(alert_id: str, price: Optional[float], product_name: str = "") -> None:
+    if price is None:
+        _q("UPDATE price_alerts SET last_checked=? WHERE alert_id=?", (time.time(), alert_id))
+    else:
+        _q("UPDATE price_alerts SET last_price=?, last_checked=?, "
+           "product_name=COALESCE(NULLIF(?, ''), product_name) WHERE alert_id=?",
+           (price, time.time(), product_name, alert_id))
+
+
+def chat_alerts(chat_id) -> list:
+    rows = _q(f"SELECT {ALERT_COLUMNS} FROM price_alerts WHERE chat_id=? AND active=1 ORDER BY created_at",
+              (str(chat_id),), "all")
+    return [_alert_row(r) for r in rows or []]
+
+
+def stop_chat(chat_id) -> int:
+    n = len(chat_alerts(chat_id))
+    _q("UPDATE price_alerts SET active=0 WHERE chat_id=?", (str(chat_id),))
+    return n
