@@ -1,4 +1,9 @@
+"""Local PC browser scraper for Amazon and Flipkart reviews.
 
+It does NOT bypass CAPTCHAs. If the store asks for verification, you can
+complete it yourself in the open browser window on your PC.
+The browser profile stays on your PC; never upload it or commit it to GitHub.
+"""
 import os
 import re
 import time
@@ -72,6 +77,20 @@ def parse_flipkart_text(text: str):
     return reviews
 
 
+def read_description(page, site, limit=6):
+    """Seller's key feature bullets from the product page ("About this item" / "Highlights")."""
+    try:
+        if site == "amazon":
+            items = page.locator("#feature-bullets li span.a-list-item").all_inner_texts()
+        else:
+            text = page.locator("body").inner_text(timeout=5000)
+            m = re.search(r"\nHighlights\n(.+?)\n(?:Services|Seller|Description|Specifications|Easy Payment)", text, re.S)
+            items = m.group(1).split("\n") if m else []
+    except Exception:  # noqa: BLE001
+        return []
+    return [i.strip() for i in items if len(i.strip()) > 8][:limit]
+
+
 def _read(page, site):
     name, reviews = (parse_amazon if site == "amazon" else parse_flipkart)(page.content())
     if site == "flipkart" and not reviews:
@@ -104,7 +123,8 @@ def _wait_for_reviews(page, site, headless):
     raise ScrapeError("NO_REVIEWS", "No written reviews appeared on the reviews page. No score was generated.")
 
 
-def scrape_via_browser(url: str, max_reviews: int = 5) -> ProductPage:
+def scrape_via_browser(url: str, max_reviews: int = 5, slot: int = 0) -> ProductPage:
+    """slot>0 uses its own browser profile so two scans can run at the same time."""
     if not PLAYWRIGHT_AVAILABLE:
         raise ScrapeError(
             "BROWSER_MISSING",
@@ -118,6 +138,8 @@ def scrape_via_browser(url: str, max_reviews: int = 5) -> ProductPage:
     profile = Path(
         os.environ.get("BROWSER_PROFILE_DIR", str(Path.home() / ".checkfakereviews-browser"))
     ).expanduser()
+    if slot:
+        profile = profile.with_name(f"{profile.name}-{slot + 1}")
     profile.mkdir(parents=True, exist_ok=True)
 
     with sync_playwright() as p:
@@ -139,6 +161,14 @@ def scrape_via_browser(url: str, max_reviews: int = 5) -> ProductPage:
 
             # Opening the pasted link first also resolves short links (amzn.in, fkrt.it ...).
             page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            price = None
+            try:  # price for the comparison view; never fails the review scan
+                from price_tracker import read_price_on_page
+                page.wait_for_timeout(1500)
+                price = read_price_on_page(page, site)
+            except Exception:  # noqa: BLE001
+                price = None
+            description = read_description(page, site)
             if site_for_url(page.url) != site:
                 raise ScrapeError("UNSUPPORTED_SITE", "The link redirected outside the store.")
             try:
@@ -182,7 +212,15 @@ def scrape_via_browser(url: str, max_reviews: int = 5) -> ProductPage:
             name, reviews = _read(page, site)
             if not reviews:
                 raise ScrapeError("NO_REVIEWS", "The reviews page loaded but no reviews could be read.")
-            return ProductPage(site, product_id, name, reviews[:max_reviews], page.url)
+            if price is None:
+                try:
+                    from price_tracker import read_price_on_page
+                    price = read_price_on_page(page, site)
+                except Exception:  # noqa: BLE001
+                    price = None
+            if not description:
+                description = read_description(page, site)
+            return ProductPage(site, product_id, name, reviews[:max_reviews], page.url, price, description)
         except BrowserTimeout as exc:
             raise ScrapeError("NETWORK", "The browser timed out loading the store. Try again.") from exc
         finally:
