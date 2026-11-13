@@ -1,4 +1,27 @@
+"""
+app_render.py
+Backend for checkfakereviews.online.
 
+What changed from the previous version: the hosted build no longer refuses
+unknown products. /api/check now runs the real pipeline — scrape the product
+page, parse the 5 most recent reviews, score each one — for ANY Amazon.in or
+Flipkart URL. The three precomputed products are kept only as a fallback for
+when a live scrape is blocked, so the demo never hard-fails.
+
+Response shape is unchanged, so the existing static/index.html keeps working.
+
+Deploy (Render):
+    Build:  pip install -r requirements.txt
+    Start:  uvicorn app_render:app --host 0.0.0.0 --port $PORT
+
+Environment variables:
+    ALLOW_ORIGINS     comma-separated origins for a Vercel-hosted frontend,
+                      e.g. https://checkfakereviews.online,https://cfr.vercel.app
+    SCRAPERAPI_KEY    or PROXY_URL — strongly recommended, see scraper.py
+    DATABASE_URL      Postgres for a cache that survives restarts
+    DEMO_FALLBACK     "1" (default) to serve precomputed data when blocked
+    USE_GPT2          "1" to use real GPT-2 perplexity (needs >=2GB RAM)
+"""
 
 import os
 import secrets
@@ -342,3 +365,113 @@ def job_status(job_id: str):
     if not job:
         return JSONResponse({"error": "Unknown job id."}, status_code=404)
     return job
+
+
+# ------------------------- compare + price alerts --------------------------
+# Comparison needs no new endpoint: the page runs /api/check for both links
+# and shows them side by side (the PC worker adds each product's price).
+# Price alerts: Render only stores them. The bot runs on YOUR PC, links the
+# visitor's Telegram chat and checks prices every PRICE_CHECK_HOURS.
+
+from typing import Optional as _Opt
+
+from review_targets import site_for_url
+
+try:
+    storage.init_alerts()
+except Exception as _e:  # noqa: BLE001
+    print(f"[startup] price alert table setup failed: {_e}")
+
+TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "").strip().lstrip("@")
+
+
+@app.get("/api/config")
+def site_config():
+    return {"telegram_bot": TELEGRAM_BOT_USERNAME, "alerts_enabled": bool(TELEGRAM_BOT_USERNAME and WORKER_TOKEN)}
+
+
+class AlertRequest(BaseModel):
+    url: str
+    target_price: _Opt[float] = None
+    product_name: str = ""
+    current_price: _Opt[float] = None
+
+
+@app.post("/api/alerts")
+def create_price_alert(payload: AlertRequest):
+    if not TELEGRAM_BOT_USERNAME:
+        return {"error": "Price alerts are not set up yet (TELEGRAM_BOT_USERNAME missing on the server)."}
+    url = (payload.url or "").strip()
+    site = site_for_url(url)
+    if site == "unknown" or len(url) > 2000:
+        return {"error": "Please paste an Amazon or Flipkart product link."}
+    target = payload.target_price
+    if target is not None and not (0 < target < 10_000_000):
+        return {"error": "Target price must be a positive amount in rupees."}
+    current = payload.current_price if payload.current_price and payload.current_price > 0 else None
+    a = storage.create_alert(url, site, target, (payload.product_name or "")[:200], current)
+    return {"alert_id": a["alert_id"], "telegram_link": f"https://t.me/{TELEGRAM_BOT_USERNAME}?start={a['link_code']}"}
+
+
+@app.get("/api/alerts/{alert_id}")
+def price_alert_status(alert_id: str):
+    a = storage.get_alert(alert_id)
+    if not a:
+        return JSONResponse({"error": "Unknown alert."}, status_code=404)
+    return {"linked": bool(a["chat_id"]), "active": a["active"], "product_name": a["product_name"],
+            "target_price": a["target_price"], "last_price": a["last_price"]}
+
+
+def _public_alert(a: dict) -> dict:
+    return {k: a[k] for k in ("alert_id", "chat_id", "url", "site", "product_name", "target_price", "last_price", "last_checked")}
+
+
+@app.get("/api/worker/alerts-due")
+def worker_alerts_due(token: str = "", every: int = 6 * 3600):
+    if not _check_worker_auth(token):
+        return JSONResponse({"error": "Bad worker token."}, status_code=401)
+    _worker["last_seen"] = time.time()
+    return {"alerts": [_public_alert(a) for a in storage.due_alerts(max(every, 600))]}
+
+
+class WorkerAlertPrice(BaseModel):
+    token: str
+    alert_id: str
+    price: _Opt[float] = None
+    product_name: str = ""
+
+
+@app.post("/api/worker/alert-price")
+def worker_alert_price(payload: WorkerAlertPrice):
+    if not _check_worker_auth(payload.token):
+        return JSONResponse({"error": "Bad worker token."}, status_code=401)
+    storage.record_price(payload.alert_id, payload.price, payload.product_name[:200])
+    return {"ok": True}
+
+
+class WorkerTelegram(BaseModel):
+    token: str
+    chat_id: str
+    code: str = ""
+
+
+@app.post("/api/worker/telegram-link")
+def worker_telegram_link(payload: WorkerTelegram):
+    if not _check_worker_auth(payload.token):
+        return JSONResponse({"error": "Bad worker token."}, status_code=401)
+    a = storage.link_alert(payload.code.strip()[:40], payload.chat_id)
+    return {"alert": _public_alert(a) if a else None}
+
+
+@app.post("/api/worker/telegram-list")
+def worker_telegram_list(payload: WorkerTelegram):
+    if not _check_worker_auth(payload.token):
+        return JSONResponse({"error": "Bad worker token."}, status_code=401)
+    return {"alerts": [_public_alert(a) for a in storage.chat_alerts(payload.chat_id)]}
+
+
+@app.post("/api/worker/telegram-stop")
+def worker_telegram_stop(payload: WorkerTelegram):
+    if not _check_worker_auth(payload.token):
+        return JSONResponse({"error": "Bad worker token."}, status_code=401)
+    return {"stopped": storage.stop_chat(payload.chat_id)}
