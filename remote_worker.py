@@ -1,4 +1,48 @@
+"""
+remote_worker.py
+Run this on YOUR machine (laptop, home PC, Raspberry Pi). It polls your Render
+backend for scrape jobs, does the scraping from your home IP — the one that
+already works — and posts the results back.
 
+This is the free way around the CAPTCHA/IP-block. Render never talks to
+Amazon or Flipkart directly for jobs it hands off; it only holds the queue
+and the results. Your IP does the fetching.
+
+Setup:
+    1. On Render, set an env var:   WORKER_TOKEN=<some long random string>
+    2. On your machine (PowerShell — use $env:, NOT `set`, which leaves
+       literal quote characters in the value and breaks the URL):
+           pip install requests beautifulsoup4
+           $env:BACKEND_URL="https://checkfakereviews.online"
+           $env:WORKER_TOKEN="<the same string>"
+           python remote_worker.py
+
+    Optional, for Flipkart: Flipkart's block is a real reCAPTCHA challenge,
+    not just IP reputation, so plain requests almost never get through, even
+    from a home IP. A real headless browser has a better (not guaranteed)
+    chance:
+           pip install playwright
+           playwright install chromium
+    With that installed, Flipkart jobs automatically use the browser path.
+    Without it, they fall back to the plain scraper, which will likely fail
+    with BLOCKED — that's expected, not a bug.
+
+Keep it running. /api/health on the server will show "worker_online": true.
+When no worker is online, the server falls back to trying directly from its
+own IP (and usually failing) or returns a clear error.
+
+Caveats, stated plainly:
+    * Your site only analyzes new products while this process is running.
+      Closing this terminal (or restarting your computer) stops it — it is
+      not a background service.
+    * Your home IP is now doing the scraping for every visitor. If the site
+      gets real traffic, Amazon will eventually rate-limit your home
+      connection too. Throttle with POLL_INTERVAL and MIN_GAP_SECONDS.
+    * Flipkart is not guaranteed to work even with Playwright — reCAPTCHA
+      Enterprise is specifically built to detect headless automation too.
+      The paste-HTML option on the site remains the reliable fallback.
+    * This is fine for a portfolio/demo project. It is not a scaling plan.
+"""
 
 import os
 import time
@@ -38,15 +82,23 @@ MAX_REVIEWS = int(_clean_env("MAX_REVIEWS", "5") or "5")
 USE_BROWSER = _clean_env("USE_BROWSER", "1") == "1"
 
 _last_scrape = 0.0
+import threading
+
+import product_insights
 
 
-def process(job: dict) -> dict:
+_gap_lock = threading.Lock()
+PARALLEL = max(1, min(3, int(_clean_env("PARALLEL_SCANS", "2") or "2")))
+
+
+def process(job: dict, slot: int = 0) -> dict:
     global _last_scrape
 
-    gap = MIN_GAP_SECONDS - (time.time() - _last_scrape)
-    if gap > 0:
-        time.sleep(gap)          # be polite; avoid burning your home IP
-    _last_scrape = time.time()
+    with _gap_lock:  # stagger starts a little; two scans still overlap
+        gap = min(MIN_GAP_SECONDS, 3) - (time.time() - _last_scrape)
+        if gap > 0:
+            time.sleep(gap)
+        _last_scrape = time.time()
 
     url = job["url"]
     site = detect_site(url)
@@ -54,7 +106,7 @@ def process(job: dict) -> dict:
         if USE_BROWSER:
             if not PLAYWRIGHT_AVAILABLE:
                 raise ScrapeError("BROWSER_MISSING", "Install requirements-worker.txt and run: python -m playwright install chromium")
-            page = scrape_via_browser(url, max_reviews=MAX_REVIEWS)
+            page = scrape_via_browser(url, max_reviews=MAX_REVIEWS, slot=slot)
         else:
             page = scrape_product(url, max_reviews=MAX_REVIEWS)
 
@@ -65,6 +117,10 @@ def process(job: dict) -> dict:
                 "product_id": page.product_id,
                 "site": page.site,
                 "source": "worker",
+                "price": getattr(page, "price", None),
+                "insights": product_insights.analyze(
+                    [r.text for r in page.reviews], getattr(page, "description", [])
+                ),
             }
         )
         print(f"  ✓ {page.product_name[:50]} -> {result['trust_score']}/100")
@@ -77,6 +133,89 @@ def process(job: dict) -> dict:
     except Exception as e:  # noqa: BLE001
         traceback.print_exc()
         return {"error": f"Worker failure: {e}", "error_code": "INTERNAL", "product_url": url, "site": site}
+
+
+# ------------------------- Telegram price alerts ----------------------------
+import threading
+
+import telegram_bot
+from price_tracker import fetch_price, should_alert
+
+PRICE_CHECK_HOURS = float(_clean_env("PRICE_CHECK_HOURS", "6") or "6")
+ALERTS_PER_ROUND = 5
+_last_alert_round = 0.0
+
+
+def _api(path: str, **body):
+    r = requests.post(f"{BACKEND_URL}{path}", json={"token": WORKER_TOKEN, **body}, timeout=60)
+    r.raise_for_status()
+    return r.json()
+
+
+def _alert_line(a: dict) -> str:
+    target = f" (alert at {telegram_bot.fmt_rupees(a['target_price'])} or less)" if a.get("target_price") else ""
+    return f"• {a.get('product_name') or a['url']}{target}"
+
+
+def telegram_loop():
+    """Answers /start, /list and /stop in Telegram. Runs in the background."""
+    while True:
+        try:
+            for chat_id, text in telegram_bot.get_updates():
+                cmd, _, arg = text.partition(" ")
+                cmd = cmd.split("@")[0].lower()
+                if cmd == "/start" and arg.strip():
+                    a = _api("/api/worker/telegram-link", chat_id=str(chat_id), code=arg.strip()).get("alert")
+                    if a:
+                        telegram_bot.send(chat_id, "✅ Price alert is on for:\n" + _alert_line(a)
+                                          + f"\n\nI check the price every {PRICE_CHECK_HOURS:g} hours and message you when it drops."
+                                          + "\n/list — your alerts   /stop — turn them off")
+                    else:
+                        telegram_bot.send(chat_id, "That alert link is invalid or already used. Create a new one on the website.")
+                elif cmd == "/list":
+                    alerts = _api("/api/worker/telegram-list", chat_id=str(chat_id)).get("alerts", [])
+                    telegram_bot.send(chat_id, ("Your price alerts:\n" + "\n".join(_alert_line(a) for a in alerts))
+                                      if alerts else "You have no active price alerts.")
+                elif cmd == "/stop":
+                    n = _api("/api/worker/telegram-stop", chat_id=str(chat_id)).get("stopped", 0)
+                    telegram_bot.send(chat_id, f"Stopped {n} price alert(s).")
+                else:
+                    telegram_bot.send(chat_id, "Hi! Create a price alert on the CheckFakeReviews website, then tap its Telegram button.\n/list — your alerts\n/stop — turn alerts off")
+        except Exception as e:  # noqa: BLE001
+            print(f"telegram: {e}; retrying in 10s")
+            time.sleep(10)
+
+
+def run_price_alerts():
+    """Checks prices that are due and sends drop alerts. Looks every 10 min;
+    each alert itself is only re-checked every PRICE_CHECK_HOURS."""
+    global _last_alert_round, _last_scrape
+    if time.time() - _last_alert_round < 600:
+        return
+    _last_alert_round = time.time()
+    r = requests.get(f"{BACKEND_URL}/api/worker/alerts-due",
+                     params={"token": WORKER_TOKEN, "every": int(PRICE_CHECK_HOURS * 3600)}, timeout=60)
+    r.raise_for_status()
+    for a in r.json().get("alerts", [])[:ALERTS_PER_ROUND]:
+        gap = MIN_GAP_SECONDS - (time.time() - _last_scrape)
+        if gap > 0:
+            time.sleep(gap)
+        _last_scrape = time.time()
+        try:
+            name, price = fetch_price(a["url"])
+        except Exception as e:  # noqa: BLE001
+            print(f"  price check failed for {a['url'][:60]}: {e}")
+            name, price = "", None
+        old = a.get("last_price")
+        print(f"  price {telegram_bot.fmt_rupees(price)} (was {telegram_bot.fmt_rupees(old)}) {name[:40]}")
+        if old is None and price is not None:
+            telegram_bot.send(a["chat_id"], f"📌 Now tracking <b>{name or 'your product'}</b> at {telegram_bot.fmt_rupees(price)}.")
+        elif should_alert(old, price, a.get("target_price")):
+            telegram_bot.send(a["chat_id"],
+                f"🔻 <b>Price drop!</b>\n{name or a.get('product_name') or 'Your product'}\n"
+                f"{telegram_bot.fmt_rupees(old)} → <b>{telegram_bot.fmt_rupees(price)}</b> "
+                f"(you save {telegram_bot.fmt_rupees(old - price)})\n{a['url']}")
+        _api("/api/worker/alert-price", alert_id=a["alert_id"], price=price, product_name=name)
 
 
 def main():
@@ -95,10 +234,30 @@ def main():
         f"{'ON' if (USE_BROWSER and PLAYWRIGHT_AVAILABLE) else 'OFF'}"
         + ("" if PLAYWRIGHT_AVAILABLE else " (playwright not installed)")
     )
+    if telegram_bot.enabled():
+        threading.Thread(target=telegram_loop, daemon=True).start()
+        print(f"Telegram price alerts: ON (checks every {PRICE_CHECK_HOURS:g} h)")
+    else:
+        print("Telegram price alerts: OFF (set TELEGRAM_BOT_TOKEN to turn on)")
+    print(f"Parallel scans: {PARALLEL} (set PARALLEL_SCANS to change)")
+    for slot in range(1, PARALLEL):
+        threading.Thread(target=job_loop, args=(slot,), daemon=True).start()
+    try:
+        job_loop(0)
+    except KeyboardInterrupt:
+        print("\nworker stopped.")
+
+
+def job_loop(slot: int = 0):
     idle_logged = False
 
     while True:
         try:
+            if slot == 0 and telegram_bot.enabled() and PLAYWRIGHT_AVAILABLE:
+                try:
+                    run_price_alerts()
+                except requests.RequestException as e:
+                    print(f"price alerts: backend unreachable ({e})")
             resp = requests.get(
                 f"{BACKEND_URL}/api/worker/next",
                 params={"token": WORKER_TOKEN},
@@ -117,8 +276,8 @@ def main():
                 continue
 
             idle_logged = False
-            print(f"job {data['job_id']}: {data['url'][:70]}")
-            result = process(data)
+            print(f"[scan {slot + 1}] job {data['job_id']}: {data['url'][:70]}")
+            result = process(data, slot)
 
             # Keep the result until Render confirms it was saved.
             while True:
