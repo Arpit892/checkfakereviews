@@ -382,7 +382,7 @@ try:
 except Exception as _e:  # noqa: BLE001
     print(f"[startup] price alert table setup failed: {_e}")
 
-TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "").strip().lstrip("@")
+TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "checkfakereviews_bot").strip().lstrip("@")
 
 
 @app.get("/api/config")
