@@ -66,6 +66,7 @@ class ProductPage:
     source_url: str
     price: Optional[float] = None
     description: List[str] = field(default_factory=list)
+    specs: dict = field(default_factory=dict)
 
 
 def detect_site(url: str) -> str:
