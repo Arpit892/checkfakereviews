@@ -91,6 +91,49 @@ def read_description(page, site, limit=6):
     return [i.strip() for i in items if len(i.strip()) > 8][:limit]
 
 
+SPEC_KEYS = {
+    "colour": "Colour", "color": "Colour", "brand": "Brand", "model name": "Model", "model": "Model",
+    "material": "Material", "material type": "Material", "item weight": "Weight", "weight": "Weight",
+    "size": "Size", "warranty": "Warranty", "warranty summary": "Warranty", "warranty type": "Warranty",
+    "battery capacity": "Battery", "battery life": "Battery", "display size": "Display size",
+    "screen size": "Display size", "ram": "RAM", "ram size": "RAM", "ram memory installed size": "RAM",
+    "internal storage": "Storage", "memory storage capacity": "Storage",
+    "connectivity technology": "Connectivity", "connectivity": "Connectivity",
+    "processor": "Processor", "processor type": "Processor", "water resistance level": "Water resistance",
+}
+
+
+def parse_specs_text(text, limit=8):
+    """Pick colour, brand, material... out of the visible page text.
+    Handles 'Colour<TAB>Black' table rows (Amazon) and 'Colour' / 'Black' on two lines (Flipkart).
+    Only keys in SPEC_KEYS are read, so nothing is invented."""
+    specs = {}
+    lines = [l.strip() for l in (text or "").splitlines() if l.strip()]
+    for i, line in enumerate(lines):
+        key = val = None
+        if "\t" in line:
+            k, _, v = line.partition("\t")
+            key, val = k.strip().rstrip(":").lower(), v.strip()
+        elif line.rstrip(":").lower() in SPEC_KEYS and i + 1 < len(lines):
+            key, val = line.rstrip(":").lower(), lines[i + 1]
+        label = SPEC_KEYS.get(key or "")
+        if label and val and len(val) <= 80 and label not in specs and val.lower() not in SPEC_KEYS:
+            specs[label] = val
+        if len(specs) >= limit:
+            break
+    return specs
+
+
+def read_specs(page, site):
+    """Key specs (colour, brand, material...) from the product page. Never fails the scan."""
+    try:
+        page.mouse.wheel(0, 1400)
+        page.wait_for_timeout(700)
+        return parse_specs_text(page.locator("body").inner_text(timeout=5000))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def _read(page, site):
     name, reviews = (parse_amazon if site == "amazon" else parse_flipkart)(page.content())
     if site == "flipkart" and not reviews:
@@ -169,6 +212,7 @@ def scrape_via_browser(url: str, max_reviews: int = 5, slot: int = 0) -> Product
             except Exception:  # noqa: BLE001
                 price = None
             description = read_description(page, site)
+            specs = read_specs(page, site)
             if site_for_url(page.url) != site:
                 raise ScrapeError("UNSUPPORTED_SITE", "The link redirected outside the store.")
             try:
@@ -220,7 +264,7 @@ def scrape_via_browser(url: str, max_reviews: int = 5, slot: int = 0) -> Product
                     price = None
             if not description:
                 description = read_description(page, site)
-            return ProductPage(site, product_id, name, reviews[:max_reviews], page.url, price, description)
+            return ProductPage(site, product_id, name, reviews[:max_reviews], page.url, price, description, specs)
         except BrowserTimeout as exc:
             raise ScrapeError("NETWORK", "The browser timed out loading the store. Try again.") from exc
         finally:
