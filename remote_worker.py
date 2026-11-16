@@ -118,6 +118,7 @@ def process(job: dict, slot: int = 0) -> dict:
                 "site": page.site,
                 "source": "worker",
                 "price": getattr(page, "price", None),
+                "specs": getattr(page, "specs", {}),
                 "insights": product_insights.analyze(
                     [r.text for r in page.reviews], getattr(page, "description", [])
                 ),
