@@ -1048,6 +1048,7 @@
         <div class="row"><span>Price</span><b>${rupees(d.price)}</b></div>
         <div class="row"><span>Avg. recent rating</span><b>${avg} ★</b></div>
         <div class="row"><span>Store</span><b>${esc(d.site)}</b></div>
+        ${Object.entries(d.specs || {}).map(([k, v]) => `<div class="row"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}
         ${window.insightsHtml ? window.insightsHtml(d.insights) : ''}</div>`;
     }
 
@@ -1064,6 +1065,9 @@
           const trust = da.trust_score === db.trust_score ? null : (da.trust_score > db.trust_score ? da : db);
           let msg = trust ? `More trustworthy reviews: ${trust.product_name}.` : 'Both have similar review trust.';
           if (da.price && db.price && da.price !== db.price) msg += ` Cheaper: ${(da.price < db.price ? da : db).product_name}.`;
+          const rate = (d) => d.per_review && d.per_review.length ? d.per_review.reduce((s, r) => s + (r.rating || 0), 0) / d.per_review.length : null;
+          const ra = rate(da), rb = rate(db);
+          if (ra != null && rb != null && ra !== rb) msg += ` Better rated recently: ${(ra > rb ? da : db).product_name}.`;
           $('cmp-winner').textContent = msg;
         }
       } catch (e) { $('cmp-status').textContent = 'Could not reach the server: ' + e.message; }
