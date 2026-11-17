@@ -1,0 +1,4 @@
+# Install ONLY on your PC (not on Render).
+requests>=2.31,<3
+beautifulsoup4>=4.12,<5
+playwright>=1.50,<2
