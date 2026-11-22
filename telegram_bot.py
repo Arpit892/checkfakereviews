@@ -1,16 +1,6 @@
-"""telegram_bot.py — talks to your Telegram bot @checkfakereviews_bot.
+"""telegram_bot.py — talks to Telegram bot @checkfakereviews_bot.
 
-Recommended setup (v7): put TELEGRAM_BOT_TOKEN in Render -> Environment.
-Render then answers /start, /list and /stop instantly, 24/7, through a
-webhook, and sends the price-drop messages itself. Your PC only reads prices.
 
-Older setup (still works): leave the token off Render and set it on your PC;
-remote_worker.py then reads messages with getUpdates while it is running.
-
-Commands people can send the bot:
-  /start <code>  sent automatically when they tap "Open Telegram" on the site
-  /list          show their active alerts
-  /stop          turn off all their alerts
 """
 import hashlib
 import os
