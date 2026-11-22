@@ -1,9 +1,3 @@
-"""price_tracker.py — reads a product's current price (runs on YOUR PC).
-
-Used for the side-by-side comparison and for Telegram price-drop alerts
-(checked every PRICE_CHECK_HOURS, default 6, by remote_worker.py).
-Never bypasses CAPTCHAs: solve any check yourself in the open browser window.
-"""
 import os
 import re
 from pathlib import Path
